@@ -7,7 +7,7 @@ __pycache__/
 # Downloaded or derived data; see DATA.md
 data/raw/
 data/cache/
-runs/
+/runs/
 # training logs rewritten every generation; summaries are committed instead
 *.log.json
 reports/**/*.npy
