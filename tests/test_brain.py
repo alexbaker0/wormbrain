@@ -18,7 +18,8 @@ def obs(n, n_joints=15, conc=1.0, t=0.0):
 
 
 def test_parameter_count_is_the_same_for_every_condition(conn, brain):
-    assert brain.n_params == 3 * 104 + 8
+    assert brain.n_params == 4 * 104 + 9  # tau, bias, gain, adaptation per class + globals
+    assert Brain(conn, BrainConfig(adaptation=False)).n_params == 3 * 104 + 8
     for c in ("rewired", "random", "sign_shuffled", "weight_shuffled"):
         assert Brain(make_condition(conn, c, seed=0)).n_params == brain.n_params
 
@@ -47,7 +48,9 @@ def test_proprioceptive_neurons_and_positions(brain, conn):
     assert pos["VB1"] < pos["VB5"] < pos["VB11"]  # ordered head to tail
 
 
-def test_bounded_and_stable_for_extreme_parameters(brain):
+@pytest.mark.parametrize("adaptation", [False, True])
+def test_bounded_and_stable_for_extreme_parameters(conn, adaptation):
+    brain = Brain(conn, BrainConfig(adaptation=adaptation))
     rng = np.random.default_rng(0)
     x = brain.spec.x0() + rng.normal(0, 4.0, (16, brain.n_params))
     ctrl = BrainController(brain, x, record_every=1)
@@ -61,7 +64,9 @@ def test_bounded_and_stable_for_extreme_parameters(brain):
     p = brain.decode(x)
     bound = np.abs(p["bias"]) + p["g_chem"] + 100 * (p["salt_on"] + p["salt_off"])
     bound += np.abs(p["proprio_gain"]) * 10
-    assert np.all(np.abs(v[-1]) <= bound + 1e-9)
+    if adaptation:  # the adaptation current can overshoot by at most its own strength
+        bound = bound * (1 + p["adapt"])
+    assert np.all(np.abs(v).max(0) <= bound + 1e-9)
     assert m.shape == (16, 4, 24) and m.min() >= 0 and m.max() <= 1
 
 
@@ -96,6 +101,32 @@ def test_salt_sensors_respond_to_changes_with_the_right_sign(brain, conn):
     for _ in range(3000):
         inp = ctrl.sensory_input(obs(1, conc=2.0), 0.01)
     assert np.abs(inp[0, ase]).max() < 1e-9
+
+
+def test_adaptation_opposes_sustained_input(conn):
+    """A constant drive gives a peak, then the response sags as adaptation builds up."""
+    x = Brain(conn).spec.x0()
+    brain = Brain(conn)
+    ctrl = BrainController(brain, x)
+    ctrl.reset(1)
+    ase = conn.index(["ASEL"])[0]
+    ctrl.p["bias"] = ctrl.p["bias"].copy()
+    ctrl.p["bias"][:, ase] += 2.0
+    trace = []
+    for k in range(1000):
+        ctrl.step(obs(1, t=k * 0.01), 0.01)
+        trace.append(ctrl.v[0, ase])
+    trace = np.array(trace)
+    assert trace.max() > trace[-1] + 0.1  # sag
+    assert ctrl.a[0, ase] > 0
+    no_adapt = BrainController(Brain(conn, BrainConfig(adaptation=False)),
+                               Brain(conn, BrainConfig(adaptation=False)).spec.x0())  # fmt: skip
+    no_adapt.reset(1)
+    no_adapt.p["bias"] = no_adapt.p["bias"].copy()
+    no_adapt.p["bias"][:, ase] += 2.0
+    for k in range(1000):
+        no_adapt.step(obs(1, t=k * 0.01), 0.01)
+    assert no_adapt.v[0, ase] > trace[-1]
 
 
 def test_lesion_silences_neuron(conn):

@@ -3,8 +3,14 @@
 One leaky-integrator unit per neuron:
 
     tau_i dv_i/dt = -v_i + g_chem * sum_j W_ji phi_j(v_j)
-                         + g_gap * sum_j M_ji (v_j - v_i) + b_i + input_i
+                         + g_gap * sum_j M_ji (v_j - v_i) + b_i + input_i - w_i a_i
+    tau_a da_i/dt = v_i - a_i              (slow adaptation current)
     phi_j(v) = sigmoid(gain_j * v)          (transmitter release, in [0, 1])
+
+The adaptation current ``a`` is a slow negative feedback on each neuron's own
+activity, like the calcium-activated potassium currents many neurons have. Without
+it, every graph we tried (real, rewired, random) settled to a steady posture and
+never crawled (reports/locomotion/); with it, the network can generate rhythms.
 
 ``W`` is the chemical wiring with signs, each neuron's inputs divided by its total
 incoming synapse weight; ``M`` is the gap-junction wiring, normalised the same way.
@@ -14,18 +20,21 @@ normalisation, so a silenced neuron simply stops contributing.
 
 Integration is semi-implicit Euler: the leak and gap-junction self-terms are
 implicit, everything else explicit. Because inputs are normalised and sigmoids are
-bounded, the update is a contraction for any step size and ``v`` stays bounded;
+bounded, ``v`` stays bounded for any step size. With adaptation, ``v`` and ``a``
+are solved together implicitly (closed form per neuron), which stays stable however
+strong the adaptation; an explicit update blew up for strong adaptation in testing.
 ``check_finite`` guards against anything else.
 
 Fixed: which neurons connect, the weights and signs, the neuron->muscle synapses.
 Trained (``ParamSpec``): per neuron class tau, bias and gain; global g_chem, g_gap;
-salt sensor gains and adaptation time; proprioceptive gain; muscle gain and bias.
+adaptation strength per class and its global time constant; salt sensor gains
+and averaging time; proprioceptive gain; muscle gain and bias.
 
 Inputs
 ------
 - ASEL is an ON cell and ASER an OFF cell for salt (Suzuki et al. 2008, Nature
   454:114): each sees the rectified relative change of concentration at the nose
-  against a running average over ``tau_adapt`` (transient, as observed).
+  against a running average over ``salt_tau`` (transient, as observed).
 - B-class motor neurons (VB, DB) sense body curvature (Wen et al. 2012, Neuron
   76:750): each gets the dorsal (DB) or ventral (VB) curvature a short distance
   anterior to its own position, which is taken from its neuromuscular synapses.
@@ -54,6 +63,7 @@ class BrainConfig:
     conc_ref: float = 0.05  # relative change = (c - c_avg) / (conc_ref + |c_avg|)
     proprio_classes: tuple[str, ...] = ("VB", "DB")
     proprio_offset: float = 0.1  # body lengths anterior to the neuron
+    adaptation: bool = True  # slow per-neuron adaptation current (see module docstring)
     lesion: tuple[str, ...] = ()
     init: dict = field(default_factory=dict)  # overrides of ParamSpec defaults
 
@@ -70,7 +80,7 @@ def _normalise_columns(w):
 class ParamSpec:
     """Layout of the flat parameter vector the optimiser sees."""
 
-    def __init__(self, n_groups: int, init: dict):
+    def __init__(self, n_groups: int, init: dict, adaptation: bool = True):
         # name: (size, initial raw value); transforms are in Brain.decode
         self.blocks = {
             "tau": (n_groups, 0.0),
@@ -79,11 +89,13 @@ class ParamSpec:
             "g_chem": (1, 0.0),
             "g_gap": (1, np.log(0.5)),
             "salt_gain": (2, np.log(20.0)),
-            "tau_adapt": (1, 0.0),
+            "salt_tau": (1, 0.0),
             "proprio_gain": (1, 0.0),
             "muscle_gain": (1, np.log(4.0)),
             "muscle_bias": (1, 0.0),
         }
+        if adaptation:
+            self.blocks |= {"adapt": (n_groups, np.log(0.5)), "adapt_tau": (1, 0.0)}
         self.blocks = {k: (n, init.get(k, v)) for k, (n, v) in self.blocks.items()}
         self.slices, start = {}, 0
         for k, (n, _) in self.blocks.items():
@@ -114,7 +126,7 @@ class Brain:
             self.group = np.array([classes.index(c) for c in conn.cell_class])
         else:
             self.group = np.arange(n)
-        self.spec = ParamSpec(int(self.group.max()) + 1, cfg.init)
+        self.spec = ParamSpec(int(self.group.max()) + 1, cfg.init, cfg.adaptation)
 
         alive = np.ones(n)
         alive[conn.index(list(cfg.lesion))] = 0.0
@@ -172,10 +184,12 @@ class Brain:
             "g_gap": np.exp(p["g_gap"]),
             "salt_on": np.exp(p["salt_gain"][:, :1]),
             "salt_off": np.exp(p["salt_gain"][:, 1:]),
-            "tau_adapt": 0.5 + 9.5 * _sigmoid(p["tau_adapt"]),
+            "salt_tau": 0.5 + 9.5 * _sigmoid(p["salt_tau"]),
             "proprio_gain": p["proprio_gain"],
             "muscle_gain": np.exp(p["muscle_gain"]),
             "muscle_bias": p["muscle_bias"],
+            "adapt": np.exp(p["adapt"])[:, self.group] if "adapt" in p else None,
+            "adapt_tau": 0.2 + 4.8 * _sigmoid(p["adapt_tau"]) if "adapt_tau" in p else None,
         }
 
 
@@ -195,6 +209,7 @@ class BrainController:
             self.x = np.repeat(self.x, n_worms, axis=0)
             self.p = self.brain.decode(self.x)
         self.v = np.zeros((n_worms, self.brain.n))
+        self.a = np.zeros((n_worms, self.brain.n))
         self.c_avg = None
         self.k = 0
         self.activity = []
@@ -206,7 +221,7 @@ class BrainController:
         if self.c_avg is None:
             self.c_avg = c.copy()
         rel = (c - self.c_avg) / (cfg.conc_ref + np.abs(self.c_avg))
-        self.c_avg = self.c_avg + (c - self.c_avg) * dt / p["tau_adapt"][:, 0]
+        self.c_avg = self.c_avg + (c - self.c_avg) * dt / p["salt_tau"][:, 0]
         inp[:, b.on_idx] += p["salt_on"] * np.maximum(rel, 0)[:, None]
         inp[:, b.off_idx] += p["salt_off"] * np.maximum(-rel, 0)[:, None]
         kappa = obs["kappa"] @ b.joints_to_prop.T / b.kappa_max  # (P, n_prop)
@@ -218,8 +233,19 @@ class BrainController:
         out = _sigmoid(p["gain"] * self.v) * b.alive
         drive = p["g_chem"] * (out @ b.W) + p["g_gap"] * (self.v @ b.M)
         drive += p["bias"] + self.sensory_input(obs, dt)
-        a = dt / p["tau"]
-        self.v = (self.v + a * drive) / (1.0 + a * (1.0 + p["g_gap"] * b.gap_self))
+        r = dt / p["tau"]
+        leak = 1.0 + r * (1.0 + p["g_gap"] * b.gap_self)
+        if p["adapt"] is None:
+            self.v = (self.v + r * drive) / leak
+        else:
+            # v and a updated together, both implicit (backward Euler on the linear part):
+            #   v' = (v + r (drive - w a')) / leak,   a' = (a + ra v') / (1 + ra)
+            ra = dt / p["adapt_tau"]
+            w = p["adapt"]
+            self.v = (self.v + r * drive - r * w * self.a / (1 + ra)) / (
+                leak + r * w * ra / (1 + ra)
+            )
+            self.a = (self.a + ra * self.v) / (1 + ra)
         self.v *= b.alive
         check_finite(self.v)
         self.k += 1
