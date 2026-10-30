@@ -1,0 +1,58 @@
+{
+ "gaits": {
+  "forward": {
+   "speed_mm_s": 0.1761019815851807,
+   "net_forward_mm_s": 0.1749027494587828
+  },
+  "backward": {
+   "speed_mm_s": 0.17610192212899198,
+   "net_forward_mm_s": -0.17486138079464478
+  },
+  "dorsal bias 0.3": {
+   "speed_mm_s": 0.15172888663727863,
+   "net_forward_mm_s": -0.01657247882897713
+  },
+  "ventral bias 0.3": {
+   "speed_mm_s": 0.15172872705226495,
+   "net_forward_mm_s": -0.01676839880239693
+  }
+ },
+ "chemotaxis": {
+  "gaussian": {
+   "blind crawling": {
+    "reward_mean": -0.4508180100751088,
+    "reward_sd": 0.08804163483141082,
+    "final_distance_mm_mean": 20.652072119857664
+   },
+   "gradient steering": {
+    "reward_mean": 0.26524958349741123,
+    "reward_sd": 0.09447188895773768,
+    "final_distance_mm_mean": 3.159434291089886
+   }
+  },
+  "two_peaks": {
+   "blind crawling": {
+    "reward_mean": -0.4839600561046644,
+    "reward_sd": 0.09146008873413482,
+    "final_distance_mm_mean": 20.652072119857664
+   },
+   "gradient steering": {
+    "reward_mean": 0.26694645161498076,
+    "reward_sd": 0.10247943490330241,
+    "final_distance_mm_mean": 3.6878971589902707
+   }
+  },
+  "linear": {
+   "blind crawling": {
+    "reward_mean": 0.2025117142081193,
+    "reward_sd": 1.5512316951375595,
+    "final_distance_mm_mean": null
+   },
+   "gradient steering": {
+    "reward_mean": 0.46929865294751794,
+    "reward_sd": 0.31907965009458944,
+    "final_distance_mm_mean": null
+   }
+  }
+ }
+}

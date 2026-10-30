@@ -1,0 +1,6 @@
+# Generalisation test: two food patches of different strength (only `field` differs).
+field:
+  type: peaks
+  peaks:
+    - {xy: [0.0, 0.0], sigma: 4.0, amplitude: 1.0}
+    - {xy: [8.0, 6.0], sigma: 3.0, amplitude: 0.6}

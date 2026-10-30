@@ -10,14 +10,14 @@ connectome as a fixed graph inside a body controller, to the 302-neuron worm.
 Unlike FlyGM it trains with evolution strategies rather than deep RL, and it runs
 on a laptop CPU.
 
-**Status: milestone 2 of 8** (connectome loaded, signs assigned, control graphs built).
-No behaviour or results yet.
+**Status: milestone 3 of 8** (connectome and control graphs built; body and arena
+working with hand-coded controllers). No connectome-driven behaviour yet.
 
 ## Plan
 
 1. ~~Research data sources and agree the plan~~
 2. ~~Connectome loader, sign assignment, control graphs, graph statistics~~
-3. 2D worm body (resistive force theory) and arena, driven by a hand-coded oscillator
+3. ~~2D worm body (resistive force theory) and arena, driven by a hand-coded oscillator~~
 4. Graded leaky-integrator brain on the connectome, wired to body and sensors; stability tests
 5. CMA-ES training on the real connectome until the worm reaches the food
 6. Control conditions, multi-seed experiments, `make report`
@@ -37,18 +37,29 @@ No behaviour or results yet.
   shuffled weights. Only neuron-to-neuron wiring changes; inputs, outputs and the
   parameter count stay identical (`src/wormbrain/controls.py`).
 
+- **Body:** 16 rigid segments on a plane (the worm lies on its side, so dorsal/ventral
+  bends are in the plane), moved by resistive force theory with no inertia: each step
+  solves for the motion that makes drag force and torque vanish. Muscle activations
+  in the connectome's own layout (4 quadrants × 24 rows) set the target curvature
+  (`src/wormbrain/body.py`).
+- **Arena:** open plane with a Gaussian peak, several peaks or a linear gradient;
+  random start 4–6 mm from food, random heading; reward = concentration gained
+  (`src/wormbrain/env.py`, `configs/env*.yaml`).
+
 ## Setup
 
 ```bash
 uv sync                     # Python 3.11+, installs cect and the rest
 uv run pytest               # tests (first run builds the data cache, ~20 s)
 make stats                  # graph statistics -> reports/graph_stats/
+make oscillator             # body sanity checks -> reports/oscillator/ (~1 min)
 ```
 
 ## Layout
 
 ```
 src/wormbrain/   data.py (load + cache) · signs.py · connectome.py · controls.py · graphstats.py
+                 body.py · env.py · controllers.py
 configs/         YAML configs (connectome.yaml holds every data assumption)
 scripts/         command-line entry points
 notebooks/       exploratory notebooks
@@ -65,9 +76,24 @@ caveat for the comparison: in rewired and random graphs nearly every sensory neu
 connects directly to a motor neuron, against 73 of 83 (88%) in the real graph,
 which could make the controls *easier* to train on a simple task.
 
+## Body sanity checks
+
+From [`reports/oscillator/oscillator.md`](reports/oscillator/oscillator.md): a
+hand-coded head-to-tail bending wave (0.4 Hz) crawls forward at 0.18 mm/s, close to real
+worms on agar; reversing the wave reverses the worm; a dorsal or ventral bias turns
+it in mirror-image circles. With equal drag in all directions the worm cannot move,
+the textbook result for this physics, and the tests check it. A crude hand-coded
+steering rule (turn while concentration falls) ends 3.2 mm from food on average versus
+20.7 mm for blind crawling, so the reward measures what it should. 32 worms × 120 s
+simulate in about 8 s on one CPU core.
+
 ## Limitations (so far)
 
 - Synapse signs are inferred from transmitter identity; glutamate's sign is a
   global assumption that changes the excitatory:inhibitory ratio from 16:1 to 2:1.
 - Connection weights are anatomical, not physiological strengths.
 - Neuromodulation (monoamines, neuropeptides) is left out.
+- The body's shape is set by the muscles alone (no passive bending from the
+  environment), there are no walls, and the agar drag ratio (20) is an assumption;
+  only the ratio matters for the motion and it is a config option.
+- Left and right muscles in each dorsal/ventral pair act together, since the body is 2D.

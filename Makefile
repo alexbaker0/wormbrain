@@ -1,4 +1,4 @@
-.PHONY: test lint stats
+.PHONY: test lint stats oscillator
 
 test:
 	uv run pytest -q
@@ -9,3 +9,6 @@ lint:
 
 stats:
 	uv run python scripts/graph_stats.py
+
+oscillator:
+	uv run python scripts/oscillator_demo.py

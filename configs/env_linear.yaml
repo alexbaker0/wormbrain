@@ -1,0 +1,6 @@
+# Generalisation test: a linear gradient rising towards +x (only `field` differs).
+field:
+  type: linear
+  direction_deg: 0.0
+  slope: 0.1             # per mm
+  offset: 0.0
