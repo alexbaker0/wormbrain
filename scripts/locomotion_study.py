@@ -34,6 +34,18 @@ def run_one(job):
     return res
 
 
+def regait(result):
+    """Recompute gait measures from the saved best parameters (deterministic)."""
+    import numpy as np
+
+    from wormbrain.locomotion import evaluate, setup
+
+    brain, body, _ = setup(result["condition"], result["seed"], result["glutamate"],
+                           result["adaptation"])  # fmt: skip
+    _, _, gait = evaluate(brain, body, np.array(result["best_x"]))
+    return {k: v for k, v in result.items() if k != "wave_lag_s"} | gait
+
+
 def summarise(results, conditions, glutamates):
     import matplotlib
 
@@ -47,14 +59,15 @@ def summarise(results, conditions, glutamates):
         for k, cond in enumerate(conditions):
             rs = [r for r in results if r["condition"] == cond and r["glutamate"] == glu]
             speed = np.array([r["forward_speed_mm_s"] for r in rs])
-            lag = np.array([r["wave_lag_s"] for r in rs])
-            moving = np.array([r["curvature_temporal_sd"] for r in rs])
+            wave = np.array([r["wave_direction"] for r in rs])
+            hz = np.array([r["undulation_hz"] for r in rs])
             table[(cond, glu)] = speed
             rows.append(
                 f"| {cond} | {glu} | {len(rs)} | {speed.mean():.3f} ± {speed.std(ddof=1):.3f} "
                 f"| {', '.join(f'{s:.3f}' for s in speed)} "
                 f"| {(speed > 0.05).sum()}/{len(rs)} "
-                f"| {', '.join(f'{x:+.2f}' for x in lag)} | {moving.mean():.2f} |"
+                f"| {', '.join(f'{x:+.2f}' for x in wave)} "
+                f"| {', '.join(f'{x:.2f}' for x in hz)} |"
             )
             curves = np.array([r["curve"] for r in rs])
             x = np.arange(1, curves.shape[1] + 1) * rs[0]["popsize"]
@@ -78,7 +91,7 @@ def summarise(results, conditions, glutamates):
         "Shaded bands in curves.png span the best and worst seed.",
         "",
         "| graph | glutamate | seeds | speed mean ± SD (mm/s) | per seed | crawling (> 0.05) "
-        "| wave lag per seed (s, > 0 head-to-tail) | curvature change over time |",
+        "| wave direction per seed (+1 head-to-tail) | undulation per seed (Hz) |",
         "|---|---|---|---|---|---|---|---|",
         *rows,
         "",
@@ -109,6 +122,7 @@ def main():
                                   [args.generations]))  # fmt: skip
     with ProcessPoolExecutor(args.workers) as pool:
         results = list(pool.map(run_one, jobs))
+        results = list(pool.map(regait, results))
     summarise(results, args.conditions, args.glutamate)
 
 

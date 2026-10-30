@@ -24,19 +24,29 @@ def forward_speed(ep) -> np.ndarray:
     return (ep.centroid[-1, :, 0] - ep.centroid[k, :, 0]) / (ep.t[-1] - ep.t[k])
 
 
-def wave_lag(kappa: np.ndarray, dt: float = DT) -> float:
-    """Lag (s) of tail curvature behind head curvature; > 0 means a head-to-tail wave.
+def wave_direction(kappa: np.ndarray) -> float:
+    """How much of the bending travels head-to-tail, in [-1, 1].
 
-    ``kappa`` is (T, joints) for one worm. Searches lags up to +-2 s.
+    ``kappa`` is (T, joints) for one worm, joint 0 at the head. A bend travelling
+    head-to-tail, exp(i(w t - k s)), puts its power where numpy's FFT frequencies
+    (time, space) have opposite signs; tail-to-head, the same sign. Returns
+    (head-to-tail - tail-to-head) / total; ~0 for a standing or frozen posture.
     """
-    head, tail = kappa[:, 2] - kappa[:, 2].mean(), kappa[:, -3] - kappa[:, -3].mean()
-    n, m = len(head), int(2.0 / dt)
-    lags = np.arange(-m, m + 1)
-    # corr(k) = sum_t head[t] * tail[t + k]
-    corr = [
-        np.dot(head[max(0, -k) : n - max(0, k)], tail[max(0, k) : n - max(0, -k)]) for k in lags
-    ]
-    return float(lags[int(np.argmax(corr))] * dt)
+    k = kappa - kappa.mean(0)
+    power = np.abs(np.fft.fft2(k)) ** 2  # axes: time frequency, space frequency
+    ft = np.fft.fftfreq(k.shape[0])[:, None]
+    fs = np.fft.fftfreq(k.shape[1])[None, :]
+    backward, forward = power[(ft * fs) > 0].sum(), power[(ft * fs) < 0].sum()
+    total = forward + backward
+    return float((forward - backward) / total) if total > 0 else 0.0
+
+
+def undulation_frequency(kappa: np.ndarray, dt: float = DT) -> float:
+    """Dominant temporal frequency (Hz) of the curvature, averaged over the body."""
+    k = kappa - kappa.mean(0)
+    spec = (np.abs(np.fft.rfft(k, axis=0)) ** 2).sum(1)
+    f = np.fft.rfftfreq(len(k), dt)
+    return float(f[1:][spec[1:].argmax()])
 
 
 class KappaRecorder:
@@ -72,7 +82,8 @@ def evaluate(brain, body, x, record_shapes: bool = False):
     k = int(SETTLE / DT)
     gait = {
         "forward_speed_mm_s": float(forward_speed(ep)[0]),
-        "wave_lag_s": wave_lag(kappa[k:]),
+        "wave_direction": wave_direction(kappa[k:]),
+        "undulation_hz": undulation_frequency(kappa[k:]),
         "curvature_rms": float(np.sqrt((kappa[k:] ** 2).mean())),
         # how much the curvature changes over time; ~0 for a frozen posture
         "curvature_temporal_sd": float(kappa[k:].std(0).mean()),
