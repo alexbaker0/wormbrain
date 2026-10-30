@@ -10,15 +10,15 @@ connectome as a fixed graph inside a body controller, to the 302-neuron worm.
 Unlike FlyGM it trains with evolution strategies rather than deep RL, and it runs
 on a laptop CPU.
 
-**Status: milestone 3 of 8** (connectome and control graphs built; body and arena
-working with hand-coded controllers). No connectome-driven behaviour yet.
+**Status: milestone 4 of 8** (the connectome brain drives the body and can learn to
+crawl forward). No chemotaxis yet.
 
 ## Plan
 
 1. ~~Research data sources and agree the plan~~
 2. ~~Connectome loader, sign assignment, control graphs, graph statistics~~
 3. ~~2D worm body (resistive force theory) and arena, driven by a hand-coded oscillator~~
-4. Graded leaky-integrator brain on the connectome, wired to body and sensors; stability tests
+4. ~~Graded leaky-integrator brain on the connectome, wired to body and sensors; stability tests~~
 5. CMA-ES training on the real connectome until the worm reaches the food
 6. Control conditions, multi-seed experiments, `make report`
 7. Lesion study compared with published ablations (Iino & Yoshida 2009; Gray et al. 2005)
@@ -100,8 +100,30 @@ same way ([`reports/locomotion/`](reports/locomotion/)), so the neuron model, no
 wiring, was the limit. Each neuron now has a slow adaptation current (a standard
 mechanism for turning steady states into rhythms), adding 105 parameters. In a
 one-seed prototype a random graph then crawled at 0.21 mm/s while the real
-connectome still stalled; a multi-seed locomotion study (in progress) tests whether
-that gap is real.
+connectome still stalled.
+
+## Locomotion study (3 seeds per cell)
+
+From [`reports/locomotion_study/summary.md`](reports/locomotion_study/summary.md),
+crawling forward for 30 s, 100 generations of CMA-ES, 425 parameters everywhere:
+
+| graph | glutamate excitatory: crawled / mean speed | glutamate inhibitory: crawled / mean speed |
+|---|---|---|
+| real | 1/3, 0.04 mm/s | 2/3, 0.20 mm/s |
+| rewired | 3/3, 0.27 mm/s | 1/3, 0.13 mm/s |
+| random | 3/3, 0.26 mm/s | 1/3, 0.20 mm/s |
+
+- **Go:** the real connectome can learn to crawl, with a head-to-tail bending wave
+  (the direction of real forward crawling) in every run that moved.
+- With glutamate treated as excitatory (the default) the real wiring learned worse than
+  both controls in this small sample; with glutamate inhibitory there is no clear
+  difference. The sign assumption matters more for the real graph than for the
+  controls, which receive the same signs shuffled.
+- Outcomes are close to all-or-nothing per seed (a run either finds a rhythm or
+  stalls), so 3 seeds cannot settle anything: the chemotaxis comparison needs more
+  seeds and generations.
+- Several fast gaits undulate at 1.4–2.3 Hz, faster than real crawling; the body
+  model has no energy cost or force limit to stop this.
 
 ## Limitations (so far)
 
@@ -113,3 +135,5 @@ that gap is real.
   environment), there are no walls, and the agar drag ratio (20) is an assumption;
   only the ratio matters for the motion and it is a config option.
 - Left and right muscles in each dorsal/ventral pair act together, since the body is 2D.
+- Nothing limits undulation frequency except the muscle time constant; trained gaits
+  can be faster than real worms'.
