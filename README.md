@@ -142,6 +142,17 @@ Two stages for every graph: learn to crawl, then learn chemotaxis
   Against a 0.005 s reference, trained crawlers' speeds change by 5–20% and a
   hand-coded steerer's final distance by about 6%; all graphs use the same step.
 
+- **Second pilot (real graph, 2 seeds x 2 glutamate settings): no chemotaxis.**
+  Worms kept moving and circled, but scored −0.07 to −0.01 on the test set versus
+  +0.08 for hand-coded steering ([`reports/chemotaxis_pilot/`](reports/chemotaxis_pilot/)).
+  Clamping the salt neurons on changed nothing downstream
+  ([`signal_trace.txt`](reports/chemotaxis_pilot/signal_trace.txt)): one brain had
+  scaled its chemical synapses down to 0.01 and crawled on gap junctions alone, with
+  its salt neurons saturated; in another the signal faded within two synapses
+  through near-zero gains. The crawling stage never rewards sensing, so it is free
+  to close the sensory pathway that chemotaxis later needs. A brain that can switch
+  its chemical wiring off also defeats the real-versus-random comparison.
+
 ## Limitations (so far)
 
 - Synapse signs are inferred from transmitter identity; glutamate's sign is a

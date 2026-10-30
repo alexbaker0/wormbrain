@@ -46,7 +46,9 @@ def summarise(results, out: Path):
     groups = sorted({(r["condition"], r["glutamate"]) for r in results})
     lines = ["# Chemotaxis results", "",
              "Test set: 32 fixed starts per arena, never used in training. Reward = "
-             "concentration gained (fraction of peak) minus 0.05 x mean power. "
+             "mean concentration over the second half minus the start (fraction of peak), "
+             "minus 0.05 x mean power, minus 0.5 x max(0, 1 - path speed / 0.1 mm/s). "
+             "'Concentration gain' leaves out both penalties. "
              "'reached' = ends within 1 mm of the main peak.", ""]  # fmt: skip
     for arena in arenas:
         lines += [f"## {arena}", "",
