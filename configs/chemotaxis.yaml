@@ -1,0 +1,35 @@
+# Chemotaxis training: crawling stage, then chemotaxis stage, then held-out tests.
+# condition / glutamate / seed are usually set on the command line.
+
+condition: real          # real | rewired | random | sign_shuffled | weight_shuffled
+glutamate: excitatory    # excitatory | inhibitory (both are run; see README)
+seed: 0
+
+env: [configs/env.yaml]
+env_overrides:
+  start: {distance: [3.0, 5.0]}     # mm from food
+  episode: {duration: 60.0, dt: 0.01}
+  reward: {type: concentration_gain, final_fraction: 0.1, energy_weight: 0.05}
+
+stage1:                  # crawling; same settings as the locomotion study so runs are reused
+  generations: 100
+  popsize: 24
+  sigma0: 0.5
+
+stage2:                  # chemotaxis
+  generations: 150
+  popsize: 24
+  sigma0: 0.3
+  n_starts: 4            # random starts per candidate per generation, shared by all candidates
+
+evaluation:
+  n_starts: 32
+  validation_seed: 500
+  test_seed: 1000
+  arenas:                # the training arena first; the rest are never seen in training
+    gaussian: {env: [configs/env.yaml]}
+    far_start:
+      env: [configs/env.yaml]
+      overrides: {start: {distance: [6.0, 8.0]}, episode: {duration: 90.0, dt: 0.01}}
+    two_peaks: {env: [configs/env.yaml, configs/env_two_peaks.yaml]}
+    linear: {env: [configs/env.yaml, configs/env_linear.yaml]}
