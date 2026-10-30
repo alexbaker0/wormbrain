@@ -64,12 +64,44 @@ class BrainConfig:
     proprio_classes: tuple[str, ...] = ("VB", "DB")
     proprio_offset: float = 0.1  # body lengths anterior to the neuron
     adaptation: bool = True  # slow per-neuron adaptation current (see module docstring)
+    # Keep every parameter in a plausible range, so training cannot switch the chemical
+    # wiring or a neuron off (a pilot brain scaled its chemical synapses to 0.01 and
+    # crawled on gap junctions alone). False restores the unbounded milestone-4 model.
+    bounded: bool = True
+    # "per_neuron": each neuron's inputs divided by its own total input weight.
+    # "global": raw synapse weights divided by one constant (the mean total input over
+    # neurons that have inputs), so strong synapses carry strong signals.
+    # "unit_loop_gain": raw synapse weights scaled so the network's largest eigenvalue
+    # (of the unsigned weights) times the activation's steepest slope is 1: at unit
+    # neuron gain, signals neither die out nor blow up on their way through. Gap
+    # junctions stay per-neuron. Each graph is scaled by its own eigenvalue, the same
+    # rule for every condition.
+    normalise: str = "per_neuron"
+    # Transmitter release as a function of v. "sigmoid": in [0, 1], about 0.5 at rest,
+    # so every synapse also carries a large constant drive. "tanh": in [-1, 1], 0 at
+    # rest, so a synapse transmits changes up or down around a tonic release level.
+    activation: str = "sigmoid"
     lesion: tuple[str, ...] = ()
     init: dict = field(default_factory=dict)  # overrides of ParamSpec defaults
 
 
 def _sigmoid(x):
     return 0.5 * (1.0 + np.tanh(0.5 * x))
+
+
+ACTIVATION = {"sigmoid": _sigmoid, "tanh": np.tanh}
+SLOPE = {"sigmoid": 0.25, "tanh": 1.0}  # steepest slope at unit gain
+
+
+def _normalise_global(w):
+    total = np.abs(w).sum(0)
+    return w / total[total > 0].mean()
+
+
+def _unit_loop_gain(w, slope):
+    """Scale so the largest eigenvalue of |w| times the activation's slope is 1."""
+    rho = np.max(np.abs(np.linalg.eigvals(np.abs(w))))
+    return w / (rho * slope)
 
 
 def _normalise_columns(w):
@@ -80,7 +112,7 @@ def _normalise_columns(w):
 class ParamSpec:
     """Layout of the flat parameter vector the optimiser sees."""
 
-    def __init__(self, n_groups: int, init: dict, adaptation: bool = True):
+    def __init__(self, n_groups: int, init: dict, adaptation: bool = True, bounded: bool = True):
         # name: (size, initial raw value); transforms are in Brain.decode
         self.blocks = {
             "tau": (n_groups, 0.0),
@@ -96,6 +128,8 @@ class ParamSpec:
         }
         if adaptation:
             self.blocks |= {"adapt": (n_groups, np.log(0.5)), "adapt_tau": (1, 0.0)}
+        if bounded:  # every bounded range is centred on the old starting value
+            self.blocks = {k: (n, 0.0) for k, (n, _) in self.blocks.items()}
         self.blocks = {k: (n, init.get(k, v)) for k, (n, v) in self.blocks.items()}
         self.slices, start = {}, 0
         for k, (n, _) in self.blocks.items():
@@ -126,13 +160,22 @@ class Brain:
             self.group = np.array([classes.index(c) for c in conn.cell_class])
         else:
             self.group = np.arange(n)
-        self.spec = ParamSpec(int(self.group.max()) + 1, cfg.init, cfg.adaptation)
+        self.spec = ParamSpec(int(self.group.max()) + 1, cfg.init, cfg.adaptation, cfg.bounded)
 
         alive = np.ones(n)
         alive[conn.index(list(cfg.lesion))] = 0.0
         self.alive = alive
-        self.W = _normalise_columns(conn.chem * conn.chem_sign) * alive[:, None]
-        self.M = _normalise_columns(conn.gap) * alive[:, None] * alive[None, :]
+        signed = conn.chem * conn.chem_sign
+        if cfg.normalise == "per_neuron":
+            W, M = _normalise_columns(signed), _normalise_columns(conn.gap)
+        elif cfg.normalise == "global":
+            W, M = _normalise_global(signed), _normalise_global(conn.gap)
+        elif cfg.normalise == "unit_loop_gain":
+            W, M = _unit_loop_gain(signed, SLOPE[cfg.activation]), _normalise_columns(conn.gap)
+        else:
+            raise ValueError(f"unknown normalise {cfg.normalise!r}")
+        self.W = W * alive[:, None]
+        self.M = M * alive[:, None] * alive[None, :]
         self.gap_self = self.M.sum(0)  # each neuron's coupling to itself, implicit
 
         # salt sensors
@@ -176,21 +219,55 @@ class Brain:
         """Raw parameter vectors (P, D) -> physical parameters, per neuron where relevant."""
         p = self.spec.unpack(x)
         lo, hi = self.cfg.tau_range
-        return {
+        if self.cfg.bounded:
+            pos, sym = _log_range, _signed_range
+        else:
+            pos = lambda raw, lo_, hi_, old: np.exp(raw)  # noqa: E731
+            sym = lambda raw, lim: raw  # noqa: E731
+        out = {
             "tau": (lo + (hi - lo) * _sigmoid(p["tau"]))[:, self.group],
-            "bias": p["bias"][:, self.group],
-            "gain": np.exp(p["gain"])[:, self.group],
-            "g_chem": np.exp(p["g_chem"]),
-            "g_gap": np.exp(p["g_gap"]),
-            "salt_on": np.exp(p["salt_gain"][:, :1]),
-            "salt_off": np.exp(p["salt_gain"][:, 1:]),
+            "bias": sym(p["bias"], BOUNDS["bias"])[:, self.group],
+            "gain": pos(p["gain"], *BOUNDS["gain"], 1.0)[:, self.group],
+            "g_chem": pos(p["g_chem"], *BOUNDS["g_chem"], 1.0),
+            "g_gap": pos(p["g_gap"], *BOUNDS["g_gap"], 0.5),
+            "salt_on": pos(p["salt_gain"][:, :1], *BOUNDS["salt_gain"], 20.0),
+            "salt_off": pos(p["salt_gain"][:, 1:], *BOUNDS["salt_gain"], 20.0),
             "salt_tau": 0.5 + 9.5 * _sigmoid(p["salt_tau"]),
-            "proprio_gain": p["proprio_gain"],
-            "muscle_gain": np.exp(p["muscle_gain"]),
-            "muscle_bias": p["muscle_bias"],
-            "adapt": np.exp(p["adapt"])[:, self.group] if "adapt" in p else None,
-            "adapt_tau": 0.2 + 4.8 * _sigmoid(p["adapt_tau"]) if "adapt_tau" in p else None,
+            "proprio_gain": sym(p["proprio_gain"], BOUNDS["proprio_gain"]),
+            "muscle_gain": pos(p["muscle_gain"], *BOUNDS["muscle_gain"], 4.0),
+            "muscle_bias": sym(p["muscle_bias"], BOUNDS["muscle_bias"]),
+            "adapt": None,
+            "adapt_tau": None,
         }
+        if "adapt" in p:
+            out["adapt"] = pos(p["adapt"], *BOUNDS["adapt"], 0.5)[:, self.group]
+            out["adapt_tau"] = 0.2 + 4.8 * _sigmoid(p["adapt_tau"])
+        return out
+
+
+# Ranges for bounded parameters: (low, high) for positive scales, spread evenly on a
+# log scale; a single limit L for signed values, which stay in (-L, L).
+BOUNDS = {
+    "bias": 3.0,
+    "gain": (0.3, 10.0),
+    "g_chem": (0.3, 3.0),
+    "g_gap": (0.1, 3.0),
+    "salt_gain": (4.0, 100.0),
+    "proprio_gain": 10.0,
+    "muscle_gain": (0.5, 30.0),
+    "muscle_bias": 5.0,
+    "adapt": (0.05, 5.0),
+}
+
+
+def _log_range(raw, lo, hi, _old=None):
+    """Raw value -> (lo, hi), geometric midpoint at raw = 0."""
+    return np.exp(np.log(lo) + (np.log(hi) - np.log(lo)) * _sigmoid(raw))
+
+
+def _signed_range(raw, limit):
+    """Raw value -> (-limit, limit), identity near 0."""
+    return limit * np.tanh(raw / limit)
 
 
 class BrainController:
@@ -230,7 +307,7 @@ class BrainController:
 
     def step(self, obs: dict, dt: float) -> np.ndarray:
         b, p = self.brain, self.p
-        out = _sigmoid(p["gain"] * self.v) * b.alive
+        out = ACTIVATION[b.cfg.activation](p["gain"] * self.v) * b.alive
         drive = p["g_chem"] * (out @ b.W) + p["g_gap"] * (self.v @ b.M)
         drive += p["bias"] + self.sensory_input(obs, dt)
         r = dt / p["tau"]

@@ -64,13 +64,20 @@ class KappaRecorder:
         return self.inner.step(obs, dt)
 
 
-def setup(condition: str, seed: int, glutamate: str | None = None, adaptation: bool = True):
+def setup(
+    condition: str,
+    seed: int,
+    glutamate: str | None = None,
+    adaptation: bool = True,
+    bounded: bool = True,
+):
     cfg = load_config("configs/connectome.yaml")
     if glutamate:
         cfg["signs"]["glutamate"] = glutamate
     conn = make_condition(build_connectome(cfg), condition, seed)
     env = load_env_config("configs/env.yaml")
-    return Brain(conn, BrainConfig(adaptation=adaptation)), make_body(env["body"]), cfg
+    brain = Brain(conn, BrainConfig(adaptation=adaptation, bounded=bounded))
+    return brain, make_body(env["body"]), cfg
 
 
 def evaluate(brain, body, x, record_shapes: bool = False):
@@ -102,8 +109,9 @@ def train_locomotion(
     sigma0: float = 0.5,
     log_path=None,
     verbose: bool = False,
+    bounded: bool = True,
 ) -> dict:
-    brain, body, cfg = setup(condition, seed, glutamate, adaptation)
+    brain, body, cfg = setup(condition, seed, glutamate, adaptation, bounded)
 
     def objective(X):
         n = len(X)
@@ -120,6 +128,7 @@ def train_locomotion(
         "seed": seed,
         "glutamate": cfg["signs"]["glutamate"],
         "adaptation": adaptation,
+        "bounded": brain.cfg.bounded,
         "n_params": brain.n_params,
         "generations": generations,
         "popsize": popsize,

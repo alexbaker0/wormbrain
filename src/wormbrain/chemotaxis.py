@@ -68,15 +68,16 @@ def stage1(cfg: dict, verbose: bool = False) -> dict:
         r = json.loads(cached.read_text())
         same = (r["generations"], r["popsize"], r["sigma0"]) == (
             s1["generations"], s1["popsize"], s1["sigma0"])  # fmt: skip
-        if same and r["adaptation"]:
+        if same and r["adaptation"] and r.get("bounded", False):  # same model only
             return r | {"reused_from": str(cached)}
     return train_locomotion(cfg["condition"], cfg["seed"], cfg["glutamate"], True,
                             s1["generations"], s1["popsize"], s1["sigma0"],
-                            verbose=verbose)  # fmt: skip
+                            verbose=verbose, bounded=cfg.get("bounded", True))  # fmt: skip
 
 
 def stage2(cfg: dict, x_start: np.ndarray, verbose: bool = False, log_path=None) -> dict:
-    brain, body, _ = setup(cfg["condition"], cfg["seed"], cfg["glutamate"])
+    brain, body, _ = setup(cfg["condition"], cfg["seed"], cfg["glutamate"], True,
+                           cfg.get("bounded", True))  # fmt: skip
     env = env_config(cfg["env"], cfg.get("env_overrides"))
     field = Field(env["field"])
     s2 = cfg["stage2"]
@@ -125,7 +126,8 @@ def _metrics(ep, field, env) -> dict:
 
 def evaluate(cfg: dict, x) -> dict:
     """Test-set performance in every evaluation arena, with hand-coded baselines."""
-    brain, body, _ = setup(cfg["condition"], cfg["seed"], cfg["glutamate"])
+    brain, body, _ = setup(cfg["condition"], cfg["seed"], cfg["glutamate"], True,
+                           cfg.get("bounded", True))  # fmt: skip
     ev = cfg["evaluation"]
     out = {}
     for arena, spec in ev["arenas"].items():
@@ -168,6 +170,7 @@ def train_and_evaluate(cfg: dict, out_dir: Path, verbose: bool = False) -> dict:
         "condition": cfg["condition"],
         "glutamate": cfg["glutamate"],
         "seed": cfg["seed"],
+        "bounded": cfg.get("bounded", True),
         "stage1_speed_mm_s": s1["forward_speed_mm_s"],
         "stage1_reused": "reused_from" in s1,
         "chosen": s2["chosen"],

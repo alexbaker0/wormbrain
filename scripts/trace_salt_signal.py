@@ -31,7 +31,8 @@ class Clamp(BrainController):
 
 for r in json.load(open("reports/chemotaxis_pilot/results.json"))[1:2] + json.load(
     open("reports/chemotaxis_pilot/results.json"))[3:4]:  # fmt: skip
-    brain, body, _ = setup(r["condition"], r["seed"], r["glutamate"])
+    # the pilot brains were trained before parameter bounds existed
+    brain, body, _ = setup(r["condition"], r["seed"], r["glutamate"], True, r.get("bounded", False))
     x = np.array(r["x"])
     outs = []
     for on in (0.0, 3.0):

@@ -150,3 +150,29 @@ def test_brain_episode_deterministic_and_batch_consistent(brain):
     both = run(x)
     np.testing.assert_array_equal(both, run(x))
     np.testing.assert_allclose(both[:, 1], run(x[1:2])[:, 0], atol=1e-12)
+
+
+def test_bounded_parameters_stay_in_range(conn):
+    from wormbrain.brain import BOUNDS
+
+    brain = Brain(conn)
+    rng = np.random.default_rng(4)
+    x = rng.normal(0, 50.0, (64, brain.n_params))  # far outside any sensible range
+    p = brain.decode(x)
+    for key, (lo, hi) in [("gain", BOUNDS["gain"]), ("g_chem", BOUNDS["g_chem"]),
+                          ("g_gap", BOUNDS["g_gap"]), ("adapt", BOUNDS["adapt"]),
+                          ("salt_on", BOUNDS["salt_gain"])]:  # fmt: skip
+        assert p[key].min() >= lo - 1e-12 and p[key].max() <= hi + 1e-12, key
+    assert np.abs(p["bias"]).max() <= BOUNDS["bias"]
+    # the starting point decodes to (nearly) the old starting values
+    p0 = brain.decode(brain.spec.x0())
+    assert p0["g_chem"][0, 0] == pytest.approx(np.sqrt(0.9))
+    assert p0["salt_on"][0, 0] == pytest.approx(20.0)
+    assert p0["adapt"][0, 0] == pytest.approx(0.5)
+
+
+def test_unbounded_model_still_available(conn):
+    brain = Brain(conn, BrainConfig(bounded=False))
+    x = brain.spec.x0()
+    x[brain.spec.slices["g_chem"]] = np.log(0.01)
+    assert brain.decode(x)["g_chem"][0, 0] == pytest.approx(0.01)
