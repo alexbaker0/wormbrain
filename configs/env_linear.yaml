@@ -3,4 +3,4 @@ field:
   type: linear
   direction_deg: 0.0
   slope: 0.1             # per mm
-  offset: 0.0
+  offset: 2.0            # keeps concentration positive across the arena

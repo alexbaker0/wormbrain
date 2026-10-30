@@ -45,7 +45,7 @@ def test_start_positions_in_range_and_deterministic():
 
 def test_config_merge():
     cfg = load_env_config("configs/env.yaml", "configs/env_linear.yaml")
-    assert cfg["field"] == {"type": "linear", "direction_deg": 0.0, "slope": 0.1, "offset": 0.0}
+    assert cfg["field"] == {"type": "linear", "direction_deg": 0.0, "slope": 0.1, "offset": 2.0}
     assert cfg["body"]["n_segments"] == 16 and cfg["episode"]["duration"] == 120.0
 
 

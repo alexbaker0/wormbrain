@@ -50,6 +50,7 @@ class Connectome:
     chem_sign: np.ndarray  # (N, N) int8 in {-1, 0, 1}, nonzero only where chem > 0
     gap: np.ndarray  # (N, N) symmetric gap-junction weights, zero diagonal
     nmj: np.ndarray  # (N, M) neuron -> body-wall muscle weights (never rewired)
+    node_sign: np.ndarray  # (N,) transmitter-rule sign, used for neuron -> muscle synapses
     muscles: list[str]
     muscle_quadrant: list[str]  # DL / DR / VL / VR
     muscle_row: np.ndarray  # 1 (head) ... 24 (tail)
@@ -108,6 +109,7 @@ def build_connectome(cfg: dict | None = None, raw: RawData | None = None) -> Con
         chem_sign=sign,
         gap=gap,
         nmj=raw.nmj[keep].copy(),
+        node_sign=node_signs(neurons, sub_nt, sign_config(cfg))[0],
         muscles=list(raw.muscles),
         muscle_quadrant=list(quad),
         muscle_row=np.array([int(r) for r in row]),
