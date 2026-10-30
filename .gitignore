@@ -8,3 +8,6 @@ __pycache__/
 data/raw/
 data/cache/
 runs/
+# training logs rewritten every generation; summaries are committed instead
+*.log.json
+reports/**/*.npy
