@@ -43,7 +43,8 @@ for r in json.load(open("reports/chemotaxis_pilot/results.json"))[1:2] + json.lo
     idx = brain.conn.index(PATH)
     print(f"\n{r['run']}: salt_on gain {p['salt_on'][0, 0]:.1f}, g_chem {p['g_chem'][0, 0]:.2f}")
     print(
-        f"{'neuron':8s} {'v base':>8s} {'v ASEL on':>10s} {'release base':>13s} {'release on':>11s} {'gain':>6s} {'bias':>6s}"
+        f"{'neuron':8s} {'v base':>8s} {'v ASEL on':>10s} {'release base':>13s} "
+        f"{'release on':>11s} {'gain':>6s} {'bias':>6s}"
     )
     for name, k in zip(PATH, idx, strict=True):
         print(
