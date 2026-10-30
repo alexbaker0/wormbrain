@@ -1,0 +1,391 @@
+{
+ "config": {
+  "include_pharynx": false,
+  "signs": {
+   "source": "transmitter",
+   "glutamate": "excitatory",
+   "unknown": "excitatory",
+   "cotransmitter_priority": [
+    "Acetylcholine",
+    "GABA",
+    "Glutamate"
+   ],
+   "fenyves_csv": null
+  }
+ },
+ "seeds": 10,
+ "stats": {
+  "real": {
+   "neurons": 282,
+   "classes": 104,
+   "chem_edges": 3530,
+   "chem_weight_total": 20225.0,
+   "chem_density": 0.04454708361727367,
+   "chem_reciprocity": 0.35864022662889516,
+   "excitatory_edges": 3320,
+   "inhibitory_edges": 210,
+   "silent_edges": 0,
+   "excitatory_weight_fraction": 0.9532756489493202,
+   "gap_edges": 1057,
+   "gap_weight_total": 5677.0,
+   "gap_max_degree": 50,
+   "max_in_degree": 65,
+   "max_out_degree": 48,
+   "clustering": 0.3231781655487517,
+   "largest_scc": 275,
+   "sensory_to_motor_hops_mean": 1.1204819277108433,
+   "sensory_reaching_motor": "83/83",
+   "isolated_neurons": 0,
+   "nmj_neurons": 162,
+   "strong_components": 8
+  },
+  "rewired": {
+   "neurons": {
+    "mean": 282.0,
+    "sd": 0.0
+   },
+   "classes": {
+    "mean": 104.0,
+    "sd": 0.0
+   },
+   "chem_edges": {
+    "mean": 3530.0,
+    "sd": 0.0
+   },
+   "chem_weight_total": {
+    "mean": 20225.0,
+    "sd": 0.0
+   },
+   "chem_density": {
+    "mean": 0.04454708361727367,
+    "sd": 0.0
+   },
+   "chem_reciprocity": {
+    "mean": 0.07365439093484419,
+    "sd": 0.006808303177699628
+   },
+   "excitatory_edges": {
+    "mean": 3320.0,
+    "sd": 0.0
+   },
+   "inhibitory_edges": {
+    "mean": 210.0,
+    "sd": 0.0
+   },
+   "silent_edges": {
+    "mean": 0.0,
+    "sd": 0.0
+   },
+   "excitatory_weight_fraction": {
+    "mean": 0.9532756489493203,
+    "sd": 1.1102230246251565e-16
+   },
+   "gap_edges": {
+    "mean": 1057.0,
+    "sd": 0.0
+   },
+   "gap_weight_total": {
+    "mean": 5677.0,
+    "sd": 0.0
+   },
+   "gap_max_degree": {
+    "mean": 50.0,
+    "sd": 0.0
+   },
+   "max_in_degree": {
+    "mean": 65.0,
+    "sd": 0.0
+   },
+   "max_out_degree": {
+    "mean": 48.0,
+    "sd": 0.0
+   },
+   "clustering": {
+    "mean": 0.15227377357179522,
+    "sd": 0.0030936700601792277
+   },
+   "largest_scc": {
+    "mean": 275.0,
+    "sd": 0.0
+   },
+   "sensory_to_motor_hops_mean": {
+    "mean": 1.0060240963855422,
+    "sd": 0.008082173412649843
+   },
+   "sensory_reaching_motor": "83/83",
+   "isolated_neurons": {
+    "mean": 0.0,
+    "sd": 0.0
+   },
+   "nmj_neurons": {
+    "mean": 162.0,
+    "sd": 0.0
+   },
+   "strong_components": {
+    "mean": 8.0,
+    "sd": 0.0
+   }
+  },
+  "random": {
+   "neurons": {
+    "mean": 282.0,
+    "sd": 0.0
+   },
+   "classes": {
+    "mean": 104.0,
+    "sd": 0.0
+   },
+   "chem_edges": {
+    "mean": 3530.0,
+    "sd": 0.0
+   },
+   "chem_weight_total": {
+    "mean": 20225.0,
+    "sd": 0.0
+   },
+   "chem_density": {
+    "mean": 0.04454708361727367,
+    "sd": 0.0
+   },
+   "chem_reciprocity": {
+    "mean": 0.04538243626062323,
+    "sd": 0.00452158724141162
+   },
+   "excitatory_edges": {
+    "mean": 3320.0,
+    "sd": 0.0
+   },
+   "inhibitory_edges": {
+    "mean": 210.0,
+    "sd": 0.0
+   },
+   "silent_edges": {
+    "mean": 0.0,
+    "sd": 0.0
+   },
+   "excitatory_weight_fraction": {
+    "mean": 0.9532756489493203,
+    "sd": 1.1102230246251565e-16
+   },
+   "gap_edges": {
+    "mean": 1057.0,
+    "sd": 0.0
+   },
+   "gap_weight_total": {
+    "mean": 5677.0,
+    "sd": 0.0
+   },
+   "gap_max_degree": {
+    "mean": 16.6,
+    "sd": 1.3564659966250538
+   },
+   "max_in_degree": {
+    "mean": 23.9,
+    "sd": 2.071231517720798
+   },
+   "max_out_degree": {
+    "mean": 24.7,
+    "sd": 1.1
+   },
+   "clustering": {
+    "mean": 0.08672539473403615,
+    "sd": 0.0014850065700414033
+   },
+   "largest_scc": {
+    "mean": 282.0,
+    "sd": 0.0
+   },
+   "sensory_to_motor_hops_mean": {
+    "mean": 1.0,
+    "sd": 0.0
+   },
+   "sensory_reaching_motor": "83/83",
+   "isolated_neurons": {
+    "mean": 0.0,
+    "sd": 0.0
+   },
+   "nmj_neurons": {
+    "mean": 162.0,
+    "sd": 0.0
+   },
+   "strong_components": {
+    "mean": 1.0,
+    "sd": 0.0
+   }
+  },
+  "sign_shuffled": {
+   "neurons": {
+    "mean": 282.0,
+    "sd": 0.0
+   },
+   "classes": {
+    "mean": 104.0,
+    "sd": 0.0
+   },
+   "chem_edges": {
+    "mean": 3530.0,
+    "sd": 0.0
+   },
+   "chem_weight_total": {
+    "mean": 20225.0,
+    "sd": 0.0
+   },
+   "chem_density": {
+    "mean": 0.04454708361727367,
+    "sd": 0.0
+   },
+   "chem_reciprocity": {
+    "mean": 0.35864022662889516,
+    "sd": 0.0
+   },
+   "excitatory_edges": {
+    "mean": 3320.0,
+    "sd": 0.0
+   },
+   "inhibitory_edges": {
+    "mean": 210.0,
+    "sd": 0.0
+   },
+   "silent_edges": {
+    "mean": 0.0,
+    "sd": 0.0
+   },
+   "excitatory_weight_fraction": {
+    "mean": 0.9405686032138443,
+    "sd": 0.003724857884453021
+   },
+   "gap_edges": {
+    "mean": 1057.0,
+    "sd": 0.0
+   },
+   "gap_weight_total": {
+    "mean": 5677.0,
+    "sd": 0.0
+   },
+   "gap_max_degree": {
+    "mean": 50.0,
+    "sd": 0.0
+   },
+   "max_in_degree": {
+    "mean": 65.0,
+    "sd": 0.0
+   },
+   "max_out_degree": {
+    "mean": 48.0,
+    "sd": 0.0
+   },
+   "clustering": {
+    "mean": 0.3231781655487517,
+    "sd": 0.0
+   },
+   "largest_scc": {
+    "mean": 275.0,
+    "sd": 0.0
+   },
+   "sensory_to_motor_hops_mean": {
+    "mean": 1.1204819277108433,
+    "sd": 0.0
+   },
+   "sensory_reaching_motor": "83/83",
+   "isolated_neurons": {
+    "mean": 0.0,
+    "sd": 0.0
+   },
+   "nmj_neurons": {
+    "mean": 162.0,
+    "sd": 0.0
+   },
+   "strong_components": {
+    "mean": 8.0,
+    "sd": 0.0
+   }
+  },
+  "weight_shuffled": {
+   "neurons": {
+    "mean": 282.0,
+    "sd": 0.0
+   },
+   "classes": {
+    "mean": 104.0,
+    "sd": 0.0
+   },
+   "chem_edges": {
+    "mean": 3530.0,
+    "sd": 0.0
+   },
+   "chem_weight_total": {
+    "mean": 20225.0,
+    "sd": 0.0
+   },
+   "chem_density": {
+    "mean": 0.04454708361727367,
+    "sd": 0.0
+   },
+   "chem_reciprocity": {
+    "mean": 0.35864022662889516,
+    "sd": 0.0
+   },
+   "excitatory_edges": {
+    "mean": 3320.0,
+    "sd": 0.0
+   },
+   "inhibitory_edges": {
+    "mean": 210.0,
+    "sd": 0.0
+   },
+   "silent_edges": {
+    "mean": 0.0,
+    "sd": 0.0
+   },
+   "excitatory_weight_fraction": {
+    "mean": 0.9398071693448701,
+    "sd": 0.00442554500854406
+   },
+   "gap_edges": {
+    "mean": 1057.0,
+    "sd": 0.0
+   },
+   "gap_weight_total": {
+    "mean": 5677.0,
+    "sd": 0.0
+   },
+   "gap_max_degree": {
+    "mean": 50.0,
+    "sd": 0.0
+   },
+   "max_in_degree": {
+    "mean": 65.0,
+    "sd": 0.0
+   },
+   "max_out_degree": {
+    "mean": 48.0,
+    "sd": 0.0
+   },
+   "clustering": {
+    "mean": 0.3231781655487517,
+    "sd": 0.0
+   },
+   "largest_scc": {
+    "mean": 275.0,
+    "sd": 0.0
+   },
+   "sensory_to_motor_hops_mean": {
+    "mean": 1.1204819277108433,
+    "sd": 0.0
+   },
+   "sensory_reaching_motor": "83/83",
+   "isolated_neurons": {
+    "mean": 0.0,
+    "sd": 0.0
+   },
+   "nmj_neurons": {
+    "mean": 162.0,
+    "sd": 0.0
+   },
+   "strong_components": {
+    "mean": 8.0,
+    "sd": 0.0
+   }
+  }
+ }
+}

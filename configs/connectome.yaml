@@ -1,0 +1,11 @@
+# Connectome used by every experiment unless a run config overrides it.
+# Every option below is an assumption; DATA.md explains each one.
+
+include_pharynx: false   # the 20 pharyngeal neurons connect to the rest only via RIPL/R
+
+signs:
+  source: transmitter    # transmitter | fenyves (needs fenyves_csv, see DATA.md)
+  glutamate: excitatory  # excitatory | inhibitory  (GLR vs GLC receptors; unresolved per neuron)
+  unknown: excitatory    # excitatory | inhibitory | zero, for neurons with no ACh/GABA/Glu
+  cotransmitter_priority: [Acetylcholine, GABA, Glutamate]
+  fenyves_csv: null
