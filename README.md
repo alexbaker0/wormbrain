@@ -31,12 +31,15 @@ working with hand-coded controllers). No connectome-driven behaviour yet.
   neurotransmitter atlas. See [DATA.md](DATA.md) for every source and assumption.
 - **Readout (fixed):** the real neuron→muscle synapses from the same dataset map
   motor neurons onto 95 body-wall muscles, so the readout is biological rather than learned.
-- **Trained:** time constant, bias and gain per neuron class (104 classes), a few
-  global scales, and per-quadrant muscle gains: a few hundred parameters in all.
+- **Brain:** one graded leaky-integrator unit per neuron with a slow adaptation
+  current (`src/wormbrain/brain.py`). Inputs: ASEL as a salt ON cell and ASER as an
+  OFF cell; VB/DB motor neurons sense body curvature.
+- **Trained:** time constant, bias, gain and adaptation strength per neuron class
+  (104 classes), plus 9 global values (chemical and gap-junction scales, sensor and
+  muscle gains, time constants): 425 parameters, identical for every graph.
 - **Controls:** degree-preserving rewiring, an Erdős–Rényi graph, shuffled signs and
   shuffled weights. Only neuron-to-neuron wiring changes; inputs, outputs and the
   parameter count stay identical (`src/wormbrain/controls.py`).
-
 - **Body:** 16 rigid segments on a plane (the worm lies on its side, so dorsal/ventral
   bends are in the plane), moved by resistive force theory with no inertia: each step
   solves for the motion that makes drag force and torque vanish. Muscle activations
@@ -86,6 +89,19 @@ the textbook result for this physics, and the tests check it. A crude hand-coded
 steering rule (turn while concentration falls) ends 3.2 mm from food on average versus
 20.7 mm for blind crawling, so the reward measures what it should. 32 worms × 120 s
 simulate in about 8 s on one CPU core.
+
+## Locomotion: first attempt failed, adaptation added
+
+Before chemotaxis, the brain must make the body crawl. Trained only to crawl forward
+(CMA-ES, 200 generations), the first brain model reached 0.009 mm/s, about 5% of the
+hand-coded wave: the network settled to fixed states and the body froze in a bent
+posture. A wider search, inhibitory glutamate and a random graph all failed the
+same way ([`reports/locomotion/`](reports/locomotion/)), so the neuron model, not the
+wiring, was the limit. Each neuron now has a slow adaptation current (a standard
+mechanism for turning steady states into rhythms), adding 105 parameters. In a
+one-seed prototype a random graph then crawled at 0.21 mm/s while the real
+connectome still stalled; a multi-seed locomotion study (in progress) tests whether
+that gap is real.
 
 ## Limitations (so far)
 
