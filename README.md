@@ -10,8 +10,9 @@ connectome as a fixed graph inside a body controller, to the 302-neuron worm.
 Unlike FlyGM it trains with evolution strategies rather than deep RL, and it runs
 on a laptop CPU.
 
-**Status: milestone 4 of 8** (the connectome brain drives the body and can learn to
-crawl forward). No chemotaxis yet.
+**Status: milestone 5 of 8.** The real connectome, with only its neuron parameters
+trained, learns to crawl and to climb a salt gradient to food, using its salt
+sensors. The comparison with rewired and random wiring (milestone 6) is next.
 
 ## Plan
 
@@ -19,7 +20,7 @@ crawl forward). No chemotaxis yet.
 2. ~~Connectome loader, sign assignment, control graphs, graph statistics~~
 3. ~~2D worm body (resistive force theory) and arena, driven by a hand-coded oscillator~~
 4. ~~Graded leaky-integrator brain on the connectome, wired to body and sensors; stability tests~~
-5. CMA-ES training on the real connectome until the worm reaches the food
+5. ~~CMA-ES training on the real connectome until the worm reaches the food~~
 6. Control conditions, multi-seed experiments, `make report`
 7. Lesion study compared with published ablations (Iino & Yoshida 2009; Gray et al. 2005)
 8. In-browser demo on GitHub Pages
@@ -125,7 +126,7 @@ crawling forward for 30 s, 100 generations of CMA-ES, 425 parameters everywhere:
 - Several fast gaits undulate at 1.4–2.3 Hz, faster than real crawling; the body
   model has no energy cost or force limit to stop this.
 
-## Chemotaxis training (milestone 5, in progress)
+## Chemotaxis training (milestone 5)
 
 Two stages for every graph: learn to crawl, then learn chemotaxis
 (`src/wormbrain/chemotaxis.py`, `configs/chemotaxis.yaml`).
@@ -153,6 +154,28 @@ Two stages for every graph: learn to crawl, then learn chemotaxis
   to close the sensory pathway that chemotaxis later needs. A brain that can switch
   its chemical wiring off also defeats the real-versus-random comparison.
 
+- **Two model changes fixed it** (approved before running; both apply to every graph):
+  every parameter now stays in a plausible range, so a brain cannot scale its
+  chemical synapses to nothing; and transmitter release is a tanh around a resting
+  level instead of a 0-to-1 sigmoid. With the sigmoid, the large resting release
+  turned every synapse into a constant drive and a salt signal reached a head motor
+  neuron in 0% of random brains; with tanh, in 92%
+  ([`reports/sensory_reach.md`](reports/sensory_reach.md)).
+- **Third pilot (real graph, 2 seeds x 2 glutamate settings): chemotaxis learned.**
+  On 32 held-out starts, three of four worms climbed the gradient from every start and
+  ended 0.5–1.2 mm from the food (the best within 1 mm in 91% of starts), scoring
+  +0.32 to +0.33 against +0.08 for hand-coded steering. They also did well in arenas
+  never used in training (far starts, two peaks, a linear gradient). The fourth run's
+  crawling stage failed (0.03 mm/s) and it never moved properly
+  ([`reports/chemotaxis_pilot_tanh/`](reports/chemotaxis_pilot_tanh/summary.md)).
+- **They really use their salt sensors:** with ASEL and ASER silenced, the same brains
+  circle in place and climb only at chance
+  ([`sensor_lesion.md`](reports/chemotaxis_pilot_tanh/sensor_lesion.md)). With the
+  sensors they straighten out while concentration rises and loop around the food.
+- Crawling with the new model is also more realistic: 0.36–0.72 Hz undulation.
+- Training cost: about 70 minutes per run on one CPU core (6 min crawling, 66 min
+  chemotaxis), four runs in parallel on a 4-core machine.
+
 ## Limitations (so far)
 
 - Synapse signs are inferred from transmitter identity; glutamate's sign is a
@@ -163,5 +186,8 @@ Two stages for every graph: learn to crawl, then learn chemotaxis
   environment), there are no walls, and the agar drag ratio (20) is an assumption;
   only the ratio matters for the motion and it is a config option.
 - Left and right muscles in each dorsal/ventral pair act together, since the body is 2D.
-- Nothing limits undulation frequency except the muscle time constant; trained gaits
-  can be faster than real worms'.
+- Nothing limits undulation frequency except the muscle time constant and the energy
+  penalty; trained gaits can be faster than real worms'.
+- The milestone-4 locomotion study used the earlier model (sigmoid, unbounded); its
+  numbers do not describe the current one. Crawling under the current model is
+  measured in every chemotaxis run's first stage.
