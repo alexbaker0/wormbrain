@@ -24,7 +24,7 @@ import yaml
 
 from .brain import BrainController
 from .controllers import GradientSteering, TravelingWave
-from .env import Field, load_env_config, reward, run_episode, start_positions
+from .env import Field, load_env_config, path_speed, reward, run_episode, start_positions
 from .locomotion import setup, train_locomotion
 from .train import cmaes
 
@@ -108,12 +108,13 @@ def stage2(cfg: dict, x_start: np.ndarray, verbose: bool = False, log_path=None)
 
 def _metrics(ep, field, env) -> dict:
     r = reward(ep, field, env["reward"])
-    gain = reward(ep, field, env["reward"] | {"energy_weight": 0.0})
+    gain = reward(ep, field, env["reward"] | {"energy_weight": 0.0, "idle_penalty": 0.0})
     out = {
         "reward_mean": float(r.mean()),
         "reward_sd": float(r.std(ddof=1)),
         "conc_gain_mean": float(gain.mean()),
         "power_mean": float(ep.power[1:].mean()),
+        "path_speed_mean": float(path_speed(ep).mean()),
         "climbed_fraction": float((gain > 0).mean()),
     }
     if field.kind != "linear":

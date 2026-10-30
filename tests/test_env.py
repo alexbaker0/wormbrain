@@ -2,7 +2,14 @@ import numpy as np
 import pytest
 
 from wormbrain.controllers import GradientSteering, TravelingWave
-from wormbrain.env import Field, load_env_config, reward, run_episode, start_positions
+from wormbrain.env import (
+    Field,
+    load_env_config,
+    path_speed,
+    reward,
+    run_episode,
+    start_positions,
+)
 
 FIELDS = [
     {"type": "gaussian", "peak": [1.0, -2.0], "sigma": 3.0},
@@ -61,3 +68,14 @@ def test_reward_prefers_steering_over_blind_crawling():
     )
     penalised = reward(steer, f, {"energy_weight": 1.0})
     assert np.all(penalised < reward(steer, f))
+
+
+def test_idle_penalty_punishes_stopping_but_not_crawling():
+    f = Field({"type": "gaussian", "sigma": 4.0})
+    head, heading = start_positions({"distance": [4, 6]}, f, 4, seed=1)
+    still = run_episode(TravelingWave(amplitude=0.0), f, head, heading, duration=20.0)
+    crawl = run_episode(TravelingWave(), f, head, heading, duration=20.0)
+    cfg = {"min_speed": 0.1, "idle_penalty": 0.5}
+    np.testing.assert_allclose(reward(still, f, cfg) - reward(still, f), -0.5)
+    np.testing.assert_allclose(reward(crawl, f, cfg), reward(crawl, f))  # 0.17 mm/s > 0.1
+    assert np.all(path_speed(crawl) > 0.15) and np.all(path_speed(still) < 1e-9)

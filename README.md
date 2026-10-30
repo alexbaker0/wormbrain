@@ -125,6 +125,23 @@ crawling forward for 30 s, 100 generations of CMA-ES, 425 parameters everywhere:
 - Several fast gaits undulate at 1.4–2.3 Hz, faster than real crawling; the body
   model has no energy cost or force limit to stop this.
 
+## Chemotaxis training (milestone 5, in progress)
+
+Two stages for every graph: learn to crawl, then learn chemotaxis
+(`src/wormbrain/chemotaxis.py`, `configs/chemotaxis.yaml`).
+
+- **First pilot failed: the worms learned to stop.** With a reward of concentration
+  gained, crawling without steering scored −0.3 to −0.5 (on average it leads away
+  from food) while stopping scored 0, so the search switched crawling off.
+- **Fix, applied to every graph:** worms must keep moving (penalty below 0.1 mm/s
+  path speed; real worms keep crawling during chemotaxis), the score averages the
+  concentration over the second half of the episode, and each candidate is scored
+  on 8 shared random starts over 90 s. [`reports/reward_check.md`](reports/reward_check.md)
+  confirms that hand-coded steering now beats circling by 3x the evaluation noise.
+- **Time step 0.02 s** for chemotaxis (crawling stage 0.01 s) to halve the cost.
+  Against a 0.005 s reference, trained crawlers' speeds change by 5–20% and a
+  hand-coded steerer's final distance by about 6%; all graphs use the same step.
+
 ## Limitations (so far)
 
 - Synapse signs are inferred from transmitter identity; glutamate's sign is a

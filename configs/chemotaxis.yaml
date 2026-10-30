@@ -8,8 +8,13 @@ seed: 0
 env: [configs/env.yaml]
 env_overrides:
   start: {distance: [3.0, 5.0]}     # mm from food
-  episode: {duration: 60.0, dt: 0.01}
-  reward: {type: concentration_gain, final_fraction: 0.1, energy_weight: 0.05}
+  episode: {duration: 90.0, dt: 0.02}   # 0.02 s: see README for the accuracy cost
+  reward:
+    type: concentration_gain
+    final_fraction: 0.5    # mean over the second half minus the start: less noisy than the end alone
+    energy_weight: 0.05
+    min_speed: 0.1         # mm/s; slower than this is penalised (worms keep crawling)
+    idle_penalty: 0.5
 
 stage1:                  # crawling; same settings as the locomotion study so runs are reused
   generations: 100
@@ -20,7 +25,7 @@ stage2:                  # chemotaxis
   generations: 150
   popsize: 24
   sigma0: 0.3
-  n_starts: 4            # random starts per candidate per generation, shared by all candidates
+  n_starts: 8            # random starts per candidate per generation, shared by all candidates
 
 evaluation:
   n_starts: 32
@@ -30,6 +35,6 @@ evaluation:
     gaussian: {env: [configs/env.yaml]}
     far_start:
       env: [configs/env.yaml]
-      overrides: {start: {distance: [6.0, 8.0]}, episode: {duration: 90.0, dt: 0.01}}
+      overrides: {start: {distance: [6.0, 8.0]}, episode: {duration: 135.0, dt: 0.02}}
     two_peaks: {env: [configs/env.yaml, configs/env_two_peaks.yaml]}
     linear: {env: [configs/env.yaml, configs/env_linear.yaml]}

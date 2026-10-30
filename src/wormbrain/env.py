@@ -141,7 +141,10 @@ def reward(ep: Episode, field: Field, cfg: dict | None = None) -> np.ndarray:
     ``final_fraction`` of the episode minus the starting concentration, divided by
     the field's peak amplitude. ``final_distance``: minus the final centroid
     distance to the first peak, in mm. Both subtract ``energy_weight`` times the
-    mean dissipated power.
+    mean dissipated power, and ``idle_penalty * max(0, 1 - speed / min_speed)``
+    where speed is the centroid's mean path speed: real worms keep crawling during
+    chemotaxis, and without this term stopping dead beats crawling before steering
+    has been learned (blind crawling loses concentration on average).
     """
     cfg = cfg or {}
     kind = cfg.get("type", "concentration_gain")
@@ -153,7 +156,16 @@ def reward(ep: Episode, field: Field, cfg: dict | None = None) -> np.ndarray:
         r = -np.linalg.norm(ep.centroid[-1] - field.center, axis=-1)
     else:
         raise ValueError(f"unknown reward type {kind!r}")
-    return r - cfg.get("energy_weight", 0.0) * ep.power[1:].mean(0)
+    r = r - cfg.get("energy_weight", 0.0) * ep.power[1:].mean(0)
+    if cfg.get("idle_penalty", 0.0):
+        r = r - cfg["idle_penalty"] * np.maximum(0.0, 1.0 - path_speed(ep) / cfg["min_speed"])
+    return r
+
+
+def path_speed(ep: Episode) -> np.ndarray:
+    """Mean speed of the centroid along its path (mm/s), per worm."""
+    length = np.linalg.norm(np.diff(ep.centroid, axis=0), axis=-1).sum(0)
+    return length / (ep.t[-1] - ep.t[0])
 
 
 def make_body(cfg: dict | None) -> Body:
