@@ -72,12 +72,17 @@ def main():
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--generations", type=int, default=150)
     p.add_argument("--popsize", type=int, default=24)
+    p.add_argument("--sigma0", type=float, default=0.5)
+    p.add_argument("--glutamate", default=None, help="override signs.glutamate")
+    p.add_argument("--tag", default="", help="suffix for output names")
     args = p.parse_args()
 
     env = load_env_config("configs/env.yaml")
     body = make_body(env["body"])
-    conn = make_condition(build_connectome(load_config("configs/connectome.yaml")),
-                          args.condition, args.seed)  # fmt: skip
+    cfg = load_config("configs/connectome.yaml")
+    if args.glutamate:
+        cfg["signs"]["glutamate"] = args.glutamate
+    conn = make_condition(build_connectome(cfg), args.condition, args.seed)
     brain = Brain(conn)
 
     def objective(X):
@@ -87,8 +92,8 @@ def main():
         return forward_speed(ep)
 
     OUT.mkdir(parents=True, exist_ok=True)
-    stem = OUT / f"{args.condition}_seed{args.seed}"
-    res = cmaes(objective, brain.spec.x0(), popsize=args.popsize,
+    stem = OUT / f"{args.condition}_seed{args.seed}{args.tag}"
+    res = cmaes(objective, brain.spec.x0(), sigma0=args.sigma0, popsize=args.popsize,
                 generations=args.generations, seed=args.seed,
                 log_path=stem.with_suffix(".log.json"))  # fmt: skip
 
@@ -103,6 +108,8 @@ def main():
         "n_params": brain.n_params,
         "generations": args.generations,
         "popsize": args.popsize,
+        "sigma0": args.sigma0,
+        "glutamate": cfg["signs"]["glutamate"],
         "forward_speed_mm_s": float(forward_speed(ep)[0]),
         "wave_lag_s": wave_direction(kappa[k:], 0.01),
         "curvature_rms": float(np.sqrt((kappa[k:] ** 2).mean())),
