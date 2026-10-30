@@ -41,7 +41,8 @@ def regait(result):
     from wormbrain.locomotion import evaluate, setup
 
     brain, body, _ = setup(result["condition"], result["seed"], result["glutamate"],
-                           result["adaptation"], result.get("bounded", False))  # fmt: skip
+                           result["adaptation"], result.get("bounded", False),
+                           result.get("activation", "sigmoid"))  # fmt: skip
     _, _, gait = evaluate(brain, body, np.array(result["best_x"]))
     return {k: v for k, v in result.items() if k != "wave_lag_s"} | gait
 

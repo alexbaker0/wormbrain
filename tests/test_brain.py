@@ -104,29 +104,30 @@ def test_salt_sensors_respond_to_changes_with_the_right_sign(brain, conn):
 
 
 def test_adaptation_opposes_sustained_input(conn):
-    """A constant drive gives a peak, then the response sags as adaptation builds up."""
-    x = Brain(conn).spec.x0()
-    brain = Brain(conn)
-    ctrl = BrainController(brain, x)
-    ctrl.reset(1)
+    """A constant drive gives a peak, then the response sags as adaptation builds up.
+
+    ASEL is isolated (every other neuron silenced) so network echoes do not mask it.
+    """
+    others = tuple(n for n in conn.neurons if n != "ASEL")
     ase = conn.index(["ASEL"])[0]
-    ctrl.p["bias"] = ctrl.p["bias"].copy()
-    ctrl.p["bias"][:, ase] += 2.0
-    trace = []
-    for k in range(1000):
-        ctrl.step(obs(1, t=k * 0.01), 0.01)
-        trace.append(ctrl.v[0, ase])
-    trace = np.array(trace)
+
+    def run(adaptation):
+        brain = Brain(conn, BrainConfig(adaptation=adaptation, lesion=others))
+        ctrl = BrainController(brain, brain.spec.x0())
+        ctrl.reset(1)
+        ctrl.p["bias"] = ctrl.p["bias"].copy()
+        ctrl.p["bias"][:, ase] += 2.0
+        trace = []
+        for k in range(1000):
+            ctrl.step(obs(1, t=k * 0.01), 0.01)
+            trace.append(ctrl.v[0, ase])
+        return np.array(trace), ctrl
+
+    trace, ctrl = run(True)
     assert trace.max() > trace[-1] + 0.1  # sag
     assert ctrl.a[0, ase] > 0
-    no_adapt = BrainController(Brain(conn, BrainConfig(adaptation=False)),
-                               Brain(conn, BrainConfig(adaptation=False)).spec.x0())  # fmt: skip
-    no_adapt.reset(1)
-    no_adapt.p["bias"] = no_adapt.p["bias"].copy()
-    no_adapt.p["bias"][:, ase] += 2.0
-    for k in range(1000):
-        no_adapt.step(obs(1, t=k * 0.01), 0.01)
-    assert no_adapt.v[0, ase] > trace[-1]
+    plain, _ = run(False)
+    assert plain[-1] > trace[-1] + 0.1
 
 
 def test_lesion_silences_neuron(conn):

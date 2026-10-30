@@ -5,6 +5,7 @@ condition: real          # real | rewired | random | sign_shuffled | weight_shuf
 glutamate: excitatory    # excitatory | inhibitory (both are run; see README)
 seed: 0
 bounded: true            # parameter ranges limited (see src/wormbrain/brain.py BOUNDS)
+activation: tanh         # neuron output curve; sigmoid let no salt signal through
 
 env: [configs/env.yaml]
 env_overrides:

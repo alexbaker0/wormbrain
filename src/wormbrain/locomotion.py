@@ -70,13 +70,14 @@ def setup(
     glutamate: str | None = None,
     adaptation: bool = True,
     bounded: bool = True,
+    activation: str = "tanh",
 ):
     cfg = load_config("configs/connectome.yaml")
     if glutamate:
         cfg["signs"]["glutamate"] = glutamate
     conn = make_condition(build_connectome(cfg), condition, seed)
     env = load_env_config("configs/env.yaml")
-    brain = Brain(conn, BrainConfig(adaptation=adaptation, bounded=bounded))
+    brain = Brain(conn, BrainConfig(adaptation=adaptation, bounded=bounded, activation=activation))
     return brain, make_body(env["body"]), cfg
 
 
@@ -110,8 +111,9 @@ def train_locomotion(
     log_path=None,
     verbose: bool = False,
     bounded: bool = True,
+    activation: str = "tanh",
 ) -> dict:
-    brain, body, cfg = setup(condition, seed, glutamate, adaptation, bounded)
+    brain, body, cfg = setup(condition, seed, glutamate, adaptation, bounded, activation)
 
     def objective(X):
         n = len(X)
@@ -129,6 +131,7 @@ def train_locomotion(
         "glutamate": cfg["signs"]["glutamate"],
         "adaptation": adaptation,
         "bounded": brain.cfg.bounded,
+        "activation": brain.cfg.activation,
         "n_params": brain.n_params,
         "generations": generations,
         "popsize": popsize,

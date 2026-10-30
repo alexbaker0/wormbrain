@@ -80,7 +80,7 @@ class BrainConfig:
     # Transmitter release as a function of v. "sigmoid": in [0, 1], about 0.5 at rest,
     # so every synapse also carries a large constant drive. "tanh": in [-1, 1], 0 at
     # rest, so a synapse transmits changes up or down around a tonic release level.
-    activation: str = "sigmoid"
+    activation: str = "tanh"  # sigmoid let no salt signal reach the motor neurons
     lesion: tuple[str, ...] = ()
     init: dict = field(default_factory=dict)  # overrides of ParamSpec defaults
 
