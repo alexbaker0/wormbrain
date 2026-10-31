@@ -221,6 +221,22 @@ move the food and watch the worm turn towards it, or silence its salt sensors.
 checks it against Python step for step (largest difference about 1e-12 over 120 s of
 simulated time). Rebuild with `make web`.
 
+## Trained worms circle (found after milestone 6)
+
+Watching the interactive page showed the worms move in loops, mostly turning one
+way. [`reports/turning/turning.md`](reports/turning/turning.md)
+(`scripts/turning_analysis.py`) confirms it for every graph: on a flat field each
+successful brain turns one way 100% of the time, at 10–45°/s in circles 0.2–0.9 mm
+across. The side differs between brains, so it is not one built-in bias; each brain
+settles with one muscle side (dorsal or ventral, i.e. left or right on the plate)
+slightly more active, driven mostly by the motor neurons that differ between the two
+sides (13 VD vs 6 DD; AS reach dorsal muscles only). Turning hardly differs between
+rising and falling concentration, so the worms reach food by loops that drift up
+the gradient, not by the straight runs, pirouettes and weathervaning of real
+C. elegans. The cause is the reward: with movement required, circling scored 0
+while untargeted straight crawling scored about −0.5, so training found circling
+first and only had to make it drift.
+
 ## Limitations (so far)
 
 - Synapse signs are inferred from transmitter identity; glutamate's sign is a
@@ -231,6 +247,8 @@ simulated time). Rebuild with `make web`.
   environment), there are no walls, and the agar drag ratio (20) is an assumption;
   only the ratio matters for the motion and it is a config option.
 - Left and right muscles in each dorsal/ventral pair act together, since the body is 2D.
+- Trained worms move in drifting loops, not the straight runs and turns of real worms
+  (see above).
 - Nothing limits undulation frequency except the muscle time constant and the energy
   penalty; trained gaits can be faster than real worms'.
 - The milestone-4 locomotion study used the earlier model (sigmoid, unbounded); its
