@@ -18,6 +18,7 @@ from wormbrain.chemotaxis import env_config, load_run_config
 from wormbrain.controllers import GradientSteering, TravelingWave
 from wormbrain.env import (
     Field,
+    mean_curvature,
     mean_turning_rate,
     path_speed,
     reward,
@@ -44,6 +45,7 @@ def main():
         "frozen (no muscle activity)": TravelingWave(amplitude=0.0),
         "blind crawling": TravelingWave(),
         "circling (constant turn)": TravelingWave(bias=0.3),
+        "slow wide circling": TravelingWave(frequency=0.2, bias=0.1),
         "hand-coded steering": GradientSteering(),
     }
     st = cfg.get("straightness")
@@ -56,8 +58,12 @@ def main():
             hd = np.random.default_rng(0).uniform(0, 2 * np.pi, st["n_headings"])
             flat = run_episode(ctrl, FLAT, np.zeros((len(hd), 2)), hd,
                                duration=st["duration"], dt=st["dt"])  # fmt: skip
-            turn = float(np.abs(mean_turning_rate(flat)).mean())
-            r = r - st["weight"] * max(0.0, turn - st["threshold_deg_s"])
+            if st.get("measure") == "per_mm":
+                turn = float(mean_curvature(flat).mean())
+                r = r - st["weight"] * max(0.0, turn - st["threshold_deg_mm"])
+            else:
+                turn = float(np.abs(mean_turning_rate(flat)).mean())
+                r = r - st["weight"] * max(0.0, turn - st["threshold_deg_s"])
         scores[name] = r
         rows.append(
             f"| {name} | {r.mean():+.3f} | {r.std(ddof=1):.3f} | {r.std(ddof=1) / np.sqrt(k):.3f} "
@@ -65,7 +71,7 @@ def main():
         )
     steer = scores["hand-coded steering"]
     gaps = []
-    for name in ("frozen (no muscle activity)", "blind crawling", "circling (constant turn)"):
+    for name in [b for b in behaviours if b != "hand-coded steering"]:
         other = scores[name]
         diff = steer - other  # same starts, so paired
         noise = diff.std(ddof=1) / np.sqrt(k)
@@ -81,7 +87,7 @@ def main():
         f"`{env['reward']}`." + (f" Straightness penalty: `{st}`." if st else ""),
         "",
         f"| behaviour | reward mean | SD over starts | noise of a {k}-start mean "
-        "| path speed (mm/s) | power | flat-field turning (deg/s) |",
+        "| path speed (mm/s) | power | flat-field turning (deg/s, or deg/mm if per_mm) |",
         "|---|---|---|---|---|---|---|",
         *rows,
         "",

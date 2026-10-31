@@ -27,6 +27,7 @@ from .controllers import GradientSteering, TravelingWave
 from .env import (
     Field,
     load_env_config,
+    mean_curvature,
     mean_turning_rate,
     path_speed,
     reward,
@@ -68,14 +69,19 @@ def batch_rewards(brain, body, X, field, env, starts) -> np.ndarray:
     return reward(ep, field, env["reward"]).reshape(len(X), n).mean(1)
 
 
-def flat_turning(brain, body, X, n_headings: int, duration: float, dt: float, seed: int):
-    """Mean |turning rate| (deg/s) of each parameter vector crawling on a flat field."""
+def flat_turning(brain, body, X, n_headings: int, duration: float, dt: float, seed: int,
+                 per_mm: bool = False):  # fmt: skip
+    """Mean |turning| of each parameter vector crawling on a flat field.
+
+    Degrees per second, or with ``per_mm`` degrees per mm of net progress.
+    """
     headings = np.random.default_rng(seed).uniform(0, 2 * np.pi, n_headings)
     Xr = np.repeat(np.atleast_2d(X), n_headings, axis=0)
     ep = run_episode(BrainController(brain, Xr), FLAT, np.zeros((len(Xr), 2)),
                      np.tile(headings, len(Xr) // n_headings), duration=duration, dt=dt,
                      body=body)  # fmt: skip
-    return np.abs(mean_turning_rate(ep)).reshape(-1, n_headings).mean(1)
+    turn = mean_curvature(ep) if per_mm else np.abs(mean_turning_rate(ep))
+    return turn.reshape(-1, n_headings).mean(1)
 
 
 def straightness_penalty(brain, body, X, cfg: dict, seed: int) -> np.ndarray:
@@ -87,8 +93,10 @@ def straightness_penalty(brain, body, X, cfg: dict, seed: int) -> np.ndarray:
     st = cfg.get("straightness")
     if not st:
         return np.zeros(len(np.atleast_2d(X)))
-    turn = flat_turning(brain, body, X, st["n_headings"], st["duration"], st["dt"], seed)
-    return st["weight"] * np.maximum(0.0, turn - st["threshold_deg_s"])
+    per_mm = st.get("measure") == "per_mm"
+    turn = flat_turning(brain, body, X, st["n_headings"], st["duration"], st["dt"], seed, per_mm)
+    threshold = st["threshold_deg_mm"] if per_mm else st["threshold_deg_s"]
+    return st["weight"] * np.maximum(0.0, turn - threshold)
 
 
 def stage1(cfg: dict, verbose: bool = False) -> dict:
@@ -186,6 +194,19 @@ def evaluate(cfg: dict, x) -> dict:
     return out
 
 
+def flat_field_measures(cfg: dict, x) -> dict:
+    """Turning of a trained brain on a flat field, 8 headings x 120 s, both measures."""
+    brain, body, _ = setup(cfg["condition"], cfg["seed"], cfg["glutamate"], True,
+                           cfg.get("bounded", True), cfg.get("activation", "tanh"))  # fmt: skip
+    seed = cfg["evaluation"]["test_seed"]
+    return {
+        "flat_turning_deg_s": float(flat_turning(brain, body, x, 8, 120.0, 0.02, seed)[0]),
+        "flat_curvature_deg_mm": float(
+            flat_turning(brain, body, x, 8, 120.0, 0.02, seed, per_mm=True)[0]
+        ),
+    }
+
+
 def _same_stage1(cfg: dict, other: Path) -> bool:
     """Was the crawling stage in ``other`` run with identical settings and model?"""
     if not (other / "stage1.json").exists() or not (other / "config.yaml").exists():
@@ -227,23 +248,7 @@ def train_and_evaluate(cfg: dict, out_dir: Path, verbose: bool = False) -> dict:
         "curve_mean": [h["mean"] for h in s2["history"]],
         "stage2_seconds": s2["history"][-1]["seconds"],
         "test": evaluate(cfg, np.array(s2["x"])),
-        "flat_turning_deg_s": float(
-            flat_turning(
-                *setup(
-                    cfg["condition"],
-                    cfg["seed"],
-                    cfg["glutamate"],
-                    True,
-                    cfg.get("bounded", True),
-                    cfg.get("activation", "tanh"),
-                )[:2],
-                np.array(s2["x"]),
-                8,
-                120.0,
-                0.02,
-                cfg["evaluation"]["test_seed"],
-            )[0]
-        ),  # fmt: skip
+        **flat_field_measures(cfg, np.array(s2["x"])),
         "x": s2["x"],
     }
     (out_dir / "result.json").write_text(json.dumps(result))

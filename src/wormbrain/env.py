@@ -158,8 +158,18 @@ def reward(ep: Episode, field: Field, cfg: dict | None = None) -> np.ndarray:
         raise ValueError(f"unknown reward type {kind!r}")
     r = r - cfg.get("energy_weight", 0.0) * ep.power[1:].mean(0)
     if cfg.get("idle_penalty", 0.0):
-        r = r - cfg["idle_penalty"] * np.maximum(0.0, 1.0 - path_speed(ep) / cfg["min_speed"])
+        # "path": centroid path length (jitter included); "progress": net displacement
+        # over 5 s windows, so wiggling on the spot does not count as moving
+        speed = progress_speed(ep) if cfg.get("speed_measure") == "progress" else path_speed(ep)
+        r = r - cfg["idle_penalty"] * np.maximum(0.0, 1.0 - speed / cfg["min_speed"])
     return r
+
+
+def progress_speed(ep: Episode, window: float = 5.0) -> np.ndarray:
+    """Mean net speed (mm/s): centroid displacement over ``window`` s, averaged over time."""
+    k = max(1, int(round(window / (ep.t[1] - ep.t[0]))))
+    d = np.linalg.norm(ep.centroid[k:] - ep.centroid[:-k], axis=-1)
+    return d.mean(0) / (k * (ep.t[1] - ep.t[0]))
 
 
 def path_speed(ep: Episode) -> np.ndarray:
@@ -198,3 +208,12 @@ def mean_turning_rate(ep: Episode, window: float = 2.0, settle: float = 10.0) ->
     ang = np.unwrap(np.arctan2(d[..., 1], d[..., 0]), axis=0)
     s = min(len(ang) - 2, int(round(settle / rec_dt)))
     return np.rad2deg(ang[-1] - ang[s]) / ((len(ang) - 1 - s) * rec_dt)
+
+
+def mean_curvature(ep: Episode, min_speed: float = 0.02) -> np.ndarray:
+    """|Mean turning| per mm of net progress (deg/mm); a circle of radius r gives 57.3 / r.
+
+    Unlike turning per second, this cannot be lowered by crawling slowly. The speed
+    is floored at ``min_speed`` so a worm that barely moves scores high, not infinite.
+    """
+    return np.abs(mean_turning_rate(ep)) / np.maximum(progress_speed(ep), min_speed)

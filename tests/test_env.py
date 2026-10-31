@@ -5,8 +5,10 @@ from wormbrain.controllers import GradientSteering, TravelingWave
 from wormbrain.env import (
     Field,
     load_env_config,
+    mean_curvature,
     mean_turning_rate,
     path_speed,
+    progress_speed,
     reward,
     run_episode,
     start_positions,
@@ -91,3 +93,30 @@ def test_mean_turning_rate():
     assert abs(mean_turning_rate(straight)[0]) < 1.0
     assert abs(mean_turning_rate(left)[0]) > 10.0
     np.testing.assert_allclose(mean_turning_rate(left), -mean_turning_rate(right), rtol=1e-6)
+
+
+def test_curvature_does_not_reward_crawling_slowly():
+    """The same circle crawled at half speed has half the turning rate, same curvature."""
+    f = Field({"type": "linear", "slope": 0.0, "offset": 1.0})
+
+    def circle(freq):
+        return run_episode(TravelingWave(frequency=freq, bias=0.2), f, np.zeros((1, 2)),
+                           np.zeros(1), duration=80.0)  # fmt: skip
+
+    fast, slow = circle(0.4), circle(0.2)
+    assert mean_turning_rate(slow)[0] == pytest.approx(mean_turning_rate(fast)[0] / 2, rel=0.15)
+    assert mean_curvature(slow)[0] == pytest.approx(mean_curvature(fast)[0], rel=0.15)
+    straight = run_episode(TravelingWave(), f, np.zeros((1, 2)), np.zeros(1), duration=40.0)
+    assert mean_curvature(straight)[0] < 3.0
+
+
+def test_progress_speed_ignores_wiggling_in_place():
+    from wormbrain.body import Body, BodyParams
+
+    f = Field({"type": "linear", "slope": 0.0, "offset": 1.0})
+    # with equal drag in all directions the body undulates but goes nowhere
+    wiggle = run_episode(TravelingWave(), f, np.zeros((1, 2)), np.zeros(1), duration=30.0,
+                         body=Body(BodyParams(drag_normal=1.0)))  # fmt: skip
+    crawl = run_episode(TravelingWave(), f, np.zeros((1, 2)), np.zeros(1), duration=30.0)
+    assert progress_speed(wiggle)[0] < 0.01
+    assert progress_speed(crawl)[0] == pytest.approx(0.17, abs=0.03)
