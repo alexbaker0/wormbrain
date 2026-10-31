@@ -32,6 +32,10 @@
   .stat { color:var(--muted); font-variant-numeric: tabular-nums; margin-top:8px; }
   .note { color:var(--muted); font-size:12px; margin-top:12px; }
   .legend { display:flex; gap:10px; align-items:center; font-size:12px; color:var(--muted); margin-top:6px; }
+  .wiring { margin-top:12px; }
+  .wiring .scroll { overflow-x:auto; border-radius:8px; }
+  .wiring img { display:block; width:100%; min-width:760px; border-radius:8px; background:#fff; }
+  .wiring p { color:var(--muted); margin:8px 0 0; }
   .scale { width:120px; height:10px; border-radius:3px;
            background:linear-gradient(90deg,#2563eb,#e5e7eb 50%,#dc2626); }
 </style>
@@ -65,6 +69,18 @@
       <h2 style="margin-top:12px">Key neurons, last 20 s (each scaled to its own range)</h2>
       <canvas id="traces" width="560" height="300"></canvas>
     </div>
+  </div>
+  <div class="card wiring">
+    <h2>The wiring this brain runs on</h2>
+    <div class="scroll"><img id="wiringImg" src="__WIRING__"
+      alt="The C. elegans connectome: all 282 neurons in sensory, inter and motor columns with every connection, and the circuit from the salt sensors ASE through AIY, AIZ, AIB and AIA to the head and body motor neurons"></div>
+    <p><b>Left:</b> every neuron and connection, ordered so that connected neurons sit
+      near each other; bigger dots have more connections. <b>Right:</b> the path from the
+      salt sensors (ASE) to the muscles, by neuron class; thicker arrows mean more
+      synapses. Colours show each sending neuron's transmitter: red excitatory, blue
+      inhibitory, purple glutamate (either, depending on the receiving neuron), green dashed
+      gap junctions. The real-connectome brain above uses this wiring; the rewired and
+      random brains shuffle it. <a href="#" id="wiringFull">Open full size</a></p>
   </div>
   <p class="note" id="note"></p>
   <p class="note">The brain and body run live in your browser: graded neurons wired as in the
@@ -202,6 +218,11 @@ function tick(now) {
     `${d.toFixed(2)} mm from food · salt at the nose ${field.conc(worm.body.head[0], worm.body.head[1]).toFixed(3)}`;
   requestAnimationFrame(tick);
 }
+document.getElementById("wiringFull").onclick = async (e) => {
+  e.preventDefault();  // a data URL cannot be opened directly in a new tab; a blob URL can
+  const blob = await (await fetch(document.getElementById("wiringImg").src)).blob();
+  window.open(URL.createObjectURL(blob), "_blank");
+};
 drawField(); newBrain(false); mark(); requestAnimationFrame(tick);
 </script>
 </body>
