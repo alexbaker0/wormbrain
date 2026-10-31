@@ -259,6 +259,17 @@ first and only had to make it drift.
   wiggles on the spot, which the minimum-speed rule counts as movement because it
   measures the centroid's path length, jitter included.
 
+### Task v3 pilot (loopholes closed)
+
+[`configs/chemotaxis_straight2.yaml`](configs/chemotaxis_straight2.yaml): straightness
+per mm of progress, minimum speed from net progress. All four brains crawl straight
+(4–16°/mm) and keep moving, but none learned chemotaxis (test reward −0.03 to −0.00,
+climbing at chance; [`reports/chemotaxis_straight2_pilot/`](reports/chemotaxis_straight2_pilot/summary.md)).
+The population settled on straight blind crawling within a few dozen generations and
+the search narrowed there: a penalty on turning from the first generation blocks the
+route to steering, which seems to pass through brains that turn a lot before turning
+is tied to smell.
+
 ## Limitations (so far)
 
 - Synapse signs are inferred from transmitter identity; glutamate's sign is a
