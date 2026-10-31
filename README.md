@@ -72,6 +72,13 @@ reports/         generated figures and tables
 tests/           pytest suite
 ```
 
+## The wiring
+
+![connectome](reports/connectome/connectome.png)
+
+`scripts/connectome_figure.py`. Left: every neuron and connection. Right: the circuit
+from the salt sensors (ASE) to the muscles, by neuron class.
+
 ## Graph statistics so far
 
 From [`reports/graph_stats/graph_stats.md`](reports/graph_stats/graph_stats.md):
