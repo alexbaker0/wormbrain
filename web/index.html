@@ -36,6 +36,14 @@
   .wiring .scroll { overflow-x:auto; border-radius:8px; }
   .wiring img { display:block; width:100%; min-width:760px; border-radius:8px; background:#fff; }
   .wiring p { color:var(--muted); margin:8px 0 0; }
+  .nets { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  @media (max-width: 820px) { .nets { grid-template-columns:1fr; } }
+  .cap { color:var(--muted); font-size:12px; margin:4px 0 0; }
+  details { margin-top:10px; } summary { cursor:pointer; color:var(--muted); }
+  .model { margin-top:12px; } .model p, .model li { line-height:1.55; }
+  .model ul { padding-left:20px; margin:6px 0; }
+  .eq { font-family: ui-serif, Georgia, serif; font-size:15px; background:var(--bg);
+        border:1px solid var(--line); border-radius:8px; padding:8px 12px; overflow-x:auto; }
   .scale { width:120px; height:10px; border-radius:3px;
            background:linear-gradient(90deg,#2563eb,#e5e7eb 50%,#dc2626); }
 </style>
@@ -71,16 +79,65 @@
     </div>
   </div>
   <div class="card wiring">
-    <h2>The wiring this brain runs on</h2>
-    <div class="scroll"><img id="wiringImg" src="__WIRING__"
-      alt="The C. elegans connectome: all 282 neurons in sensory, inter and motor columns with every connection, and the circuit from the salt sensors ASE through AIY, AIZ, AIB and AIA to the head and body motor neurons"></div>
-    <p><b>Left:</b> every neuron and connection, ordered so that connected neurons sit
-      near each other; bigger dots have more connections. <b>Right:</b> the path from the
-      salt sensors (ASE) to the muscles, by neuron class; thicker arrows mean more
-      synapses. Colours show each sending neuron's transmitter: red excitatory, blue
-      inhibitory, purple glutamate (either, depending on the receiving neuron), green dashed
-      gap junctions. The real-connectome brain above uses this wiring; the rewired and
-      random brains shuffle it. <a href="#" id="wiringFull">Open full size</a></p>
+    <h2>The wiring, lit up live by the brain you are watching</h2>
+    <div class="nets">
+      <div><canvas id="wholeNet" width="560" height="560"></canvas>
+        <p class="cap"><b>Every neuron</b> (dots) and connection (lines), in sensory, inter and
+          motor columns, ordered so that connected neurons sit near each other.</p></div>
+      <div><canvas id="circuitNet" width="560" height="560"></canvas>
+        <p class="cap"><b>The salt-steering circuit</b> by neuron class, from the salt sensors
+          (ASE) to the head and body motor neurons; arrow width = number of synapses
+          (8 or more; motor-to-motor links not shown).</p></div>
+    </div>
+    <div class="legend"><span>neuron colour: releasing less</span><div class="scale"></div>
+      <span>more than at rest</span></div>
+    <p>Lines: <span style="color:#d1495b">red excitatory</span>,
+      <span style="color:#2e86de">blue inhibitory</span>,
+      <span style="color:#2a9d8f">green dashed gap junctions</span>, signs as used by this
+      brain. Switch to the rewired or random brain and the lines change to its shuffled
+      wiring; the neurons stay in the same places.</p>
+    <details><summary>Labelled figure of the real wiring (glutamate shown separately,
+      since its sign is an assumption)</summary>
+      <div class="scroll"><img id="wiringImg" src="__WIRING__"
+        alt="The C. elegans connectome: all 282 neurons in sensory, inter and motor columns with every connection, and the circuit from the salt sensors ASE through AIY, AIZ, AIB and AIA to the head and body motor neurons"></div>
+      <p><a href="#" id="wiringFull">Open full size</a></p>
+    </details>
+  </div>
+  <div class="card model">
+    <h2>How the neurons are modelled</h2>
+    <p>Each of the 282 neurons is a single <b>graded</b> unit: like most C. elegans neurons
+      it does not fire spikes, its voltage <i>v</i> just rises and falls smoothly. Every
+      0.02 s of simulated time, each neuron updates according to</p>
+    <p class="eq">τ dv/dt = − v + g<sub>chem</sub> · Σ w · release(partner)
+      + g<sub>gap</sub> · Σ (v<sub>partner</sub> − v) + bias + sensory input − adaptation</p>
+    <ul>
+      <li><b>Leak (− v, τ):</b> without input the voltage relaxes back to rest, quickly or
+        slowly depending on the time constant τ (0.05–2 s).</li>
+      <li><b>Chemical synapses:</b> each partner's <i>release</i> = tanh(gain · v), zero at
+        rest, positive when it releases more transmitter than usual and negative when less.
+        The weight <i>w</i> is that partner's share of the neuron's input synapses in the
+        connectome, signed by the partner's transmitter (Wang et al. 2024): acetylcholine
+        excites, GABA inhibits; glutamate can do either in real worms, so its sign is a
+        model assumption.</li>
+      <li><b>Gap junctions:</b> electrical connections pull connected neurons' voltages
+        towards each other, in both directions.</li>
+      <li><b>Adaptation:</b> a slow negative feedback on each neuron's own activity (like
+        a calcium-activated potassium current). It makes responses sag over seconds, and it
+        is what lets the network produce the rhythm that drives crawling.</li>
+      <li><b>Senses:</b> ASEL responds when salt at the nose <i>rises</i>, ASER when it
+        <i>falls</i>, both relative to the recent average, as found in real worms (Suzuki
+        et al. 2008). The forward motor neurons VB and DB sense how the body just ahead of
+        them is bent (Wen et al. 2012).</li>
+      <li><b>Muscles and body:</b> each of the 95 body-wall muscles adds up input from the
+        motor neurons that really synapse onto it; dorsal muscles minus ventral ones set how
+        each part of the 16-segment body bends, and the bending pushes against the agar
+        (resistive force theory: sliding lengthwise is much easier than sideways).</li>
+    </ul>
+    <p><b>Fixed:</b> which neurons connect, how many synapses, and their signs. <b>Learned:</b>
+      425 numbers: time constant, bias, gain and adaptation strength for each of the 104
+      neuron classes (left/right and dorsal/ventral partners share them), plus 9 global
+      ones, found by an evolution strategy (CMA-ES) that tried thousands of variants and
+      kept what found food. The real worm's wiring was not tuned at all.</p>
   </div>
   <p class="note" id="note"></p>
   <p class="note">The brain and body run live in your browser: graded neurons wired as in the
@@ -93,6 +150,7 @@
 <script>
 /*__SIM__*/
 const MODELS = /*__MODELS__*/;
+const LAYOUT = /*__LAYOUT__*/;
 const DT = 0.02, KEY = ["ASEL", "ASER", "AIYL", "AIZL", "AIBL", "RIAL", "SMDDL", "SMDVL",
   "RMDDL", "RMDVL", "AVAL", "AVBL"], VIEW = 10, ROLE_ORDER = ["sensory", "inter", "motor", "other"];
 const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
@@ -204,6 +262,62 @@ function drawTraces() {
       k ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.stroke(); });
 }
 
+// ---- live wiring diagrams -------------------------------------------------------
+const netCache = {};
+const EXC = "#d1495b", INH = "#2e86de", GAPC = "#2a9d8f";
+function wholeXY(i, W, H) { return [60 + LAYOUT.x[i] / 2 * (W - 120), 14 + LAYOUT.y[i] * (H - 28)]; }
+function wholeEdges(m, W, H) {  // drawn once per brain into an off-screen canvas
+  const c = document.createElement("canvas"); c.width = W; c.height = H;
+  const ctx = c.getContext("2d"); ctx.lineWidth = 0.5;
+  const curve = (i, j, bulge) => { const [x0, y0] = wholeXY(i, W, H), [x1, y1] = wholeXY(j, W, H);
+    const same = LAYOUT.x[i] === LAYOUT.x[j], mx = (x0 + x1) / 2 + (same ? bulge * (12 + 0.35 * Math.abs(y1 - y0)) : 0);
+    ctx.moveTo(x0, y0); ctx.quadraticCurveTo(mx, (y0 + y1) / 2, x1, y1); };
+  for (const [colour, pick] of [[EXC, (v) => v > 0], [INH, (v) => v < 0]]) {
+    ctx.strokeStyle = colour; ctx.globalAlpha = 0.09; ctx.beginPath();
+    m.W.val.forEach((v, e) => { if (pick(v)) curve(m.W.row[e], m.W.col[e], 1); }); ctx.stroke(); }
+  ctx.strokeStyle = GAPC; ctx.globalAlpha = 0.12; ctx.setLineDash([2, 2]); ctx.beginPath();
+  m.M.val.forEach((v, e) => { if (m.M.row[e] < m.M.col[e]) curve(m.M.row[e], m.M.col[e], -1); }); ctx.stroke();
+  return c;
+}
+function drawWhole(rel) {
+  const cv = document.getElementById("wholeNet"), ctx = cv.getContext("2d"), W = cv.width, H = cv.height;
+  const key = "w" + modelIdx; netCache[key] = netCache[key] || wholeEdges(worm.model, W, H);
+  ctx.clearRect(0, 0, W, H); ctx.drawImage(netCache[key], 0, 0);
+  for (let i = 0; i < LAYOUT.x.length; i++) { const [x, y] = wholeXY(i, W, H);
+    ctx.fillStyle = color(rel[i]); ctx.beginPath(); ctx.arc(x, y, 3.2, 0, 7); ctx.fill(); }
+  ctx.fillStyle = css("--muted"); ctx.font = "12px system-ui"; ctx.textAlign = "center";
+  ["sensory", "inter", "motor"].forEach((t, k) => ctx.fillText(t, 60 + k / 2 * (W - 120), H - 2));
+  ctx.textAlign = "left";
+}
+function drawCircuit(rel) {
+  const cv = document.getElementById("circuitNet"), ctx = cv.getContext("2d"), W = cv.width, H = cv.height;
+  ctx.clearRect(0, 0, W, H);
+  const pos = {}; LAYOUT.circuit.forEach((c) => { pos[c.name] = [50 + c.col / 3 * (W - 100), 40 + (c.row + 0.5) / 11 * (H - 70)]; });
+  const R = 17;
+  for (const e of worm.model.circuitEdges) {
+    const [x0, y0] = pos[e.from], [x1, y1] = pos[e.to], dx = x1 - x0, dy = y1 - y0, L = Math.hypot(dx, dy);
+    const bend = (e.gap ? -0.18 : 0.12) * L, mx = (x0 + x1) / 2 - dy / L * bend, my = (y0 + y1) / 2 + dx / L * bend;
+    const ex = x1 - (x1 - mx) / Math.hypot(x1 - mx, y1 - my) * R, ey = y1 - (y1 - my) / Math.hypot(x1 - mx, y1 - my) * R;
+    ctx.strokeStyle = e.gap ? GAPC : e.sign < 0 ? INH : EXC; ctx.globalAlpha = 0.7;
+    ctx.lineWidth = 0.6 + e.w / 30; ctx.setLineDash(e.gap ? [5, 4] : []);
+    ctx.beginPath(); ctx.moveTo(x0, y0); ctx.quadraticCurveTo(mx, my, ex, ey); ctx.stroke(); ctx.setLineDash([]);
+    if (!e.gap) { const a = Math.atan2(ey - my, ex - mx); ctx.fillStyle = ctx.strokeStyle; ctx.beginPath();
+      ctx.moveTo(ex, ey); ctx.lineTo(ex - 9 * Math.cos(a - 0.4), ey - 9 * Math.sin(a - 0.4));
+      ctx.lineTo(ex - 9 * Math.cos(a + 0.4), ey - 9 * Math.sin(a + 0.4)); ctx.fill(); }
+  }
+  ctx.globalAlpha = 1;
+  for (const c of LAYOUT.circuit) {
+    const mean = c.members.reduce((s, i) => s + rel[i], 0) / c.members.length, [x, y] = pos[c.name];
+    ctx.fillStyle = color(mean); ctx.strokeStyle = css("--ink"); ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.arc(x, y, R, 0, 7); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = "#1d2433"; ctx.font = "bold 11px system-ui"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText(c.name, x, y); }
+  ctx.textAlign = "left"; ctx.textBaseline = "alphabetic"; ctx.fillStyle = css("--muted"); ctx.font = "12px system-ui";
+  ["sensor", "interneurons", "command / head", "motor"].forEach((t, k) => {
+    ctx.textAlign = "center"; ctx.fillText(t, 50 + k / 3 * (W - 100), 14); });
+  ctx.textAlign = "left";
+}
+
 function tick(now) {
   if (playing) {
     acc += Math.min(0.1, (now - last) / 1000) * +document.getElementById("speed").value;
@@ -212,7 +326,7 @@ function tick(now) {
         hist.push(keyIdx.map((i) => rel[i])); if (hist.length > 200) hist.shift();
         trail.push(worm.body.centroid()); if (trail.length > 3000) trail.shift(); } } }
   last = now;
-  const rel = release(); drawArena(); drawNeurons(rel); drawTraces();
+  const rel = release(); drawArena(); drawNeurons(rel); drawTraces(); drawWhole(rel); drawCircuit(rel);
   const c = worm.body.centroid(), d = Math.hypot(c[0] - field.peak[0], c[1] - field.peak[1]);
   document.getElementById("stat").textContent = `t = ${(worm.k * DT).toFixed(1)} s · ` +
     `${d.toFixed(2)} mm from food · salt at the nose ${field.conc(worm.body.head[0], worm.body.head[1]).toFixed(3)}`;

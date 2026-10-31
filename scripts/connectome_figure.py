@@ -28,21 +28,12 @@ from matplotlib.lines import Line2D  # noqa: E402
 from matplotlib.patches import FancyArrowPatch  # noqa: E402
 
 from wormbrain.connectome import build_connectome, load_config, sign_rules  # noqa: E402
+from wormbrain.layout import CIRCUIT, whole_layout  # noqa: E402
 
 OUT = Path("reports/connectome")
 COLOURS = {"Acetylcholine": "#d1495b", "GABA": "#2e86de", "Glutamate": "#8e44ad",
            "other": "#8a8f98"}  # fmt: skip
 GAP = "#2a9d8f"
-COLUMNS = {"sensory": 0, "inter": 1, "motor": 2, "other": 1}
-
-# panel B: class-level salt circuit, (class, column, row)
-CIRCUIT = [
-    ("ASE", 0, 3.5),
-    ("AIY", 1, 1), ("AIZ", 1, 3), ("AIB", 1, 5), ("AIA", 1, 7),
-    ("RIA", 2, 0), ("RIB", 2, 2), ("RIM", 2, 4), ("AVA", 2, 6), ("AVB", 2, 8),
-    ("SMD", 3, -0.5), ("RMD", 3, 1), ("SMB", 3, 2.5),
-    ("VB", 3, 4), ("DB", 3, 5), ("VA", 3, 6.5), ("DA", 3, 7.5), ("VD", 3, 9), ("DD", 3, 10),
-]  # fmt: skip
 
 
 def transmitter(rule: str) -> str:
@@ -52,29 +43,9 @@ def transmitter(rule: str) -> str:
     return "other"
 
 
-def order_column(idx, y, adj, sweeps=12):
-    """Barycentric ordering: move each neuron towards the mean height of its partners."""
-    for _ in range(sweeps):
-        w = adj[idx].sum(1)
-        bary = np.where(w > 0, adj[idx] @ y / np.maximum(w, 1e-12), y[idx])
-        ranked = np.argsort(bary, kind="stable")
-        y[np.array(idx)[ranked]] = np.linspace(0, 1, len(idx))
-    return y
-
-
 def panel_whole(ax, conn, tx):
     n = conn.n
-    col = np.array([COLUMNS[r] for r in conn.role])
-    adj = (conn.chem + conn.chem.T + conn.gap).astype(float)
-    y = np.zeros(n)
-    for c in range(3):
-        idx = list(np.flatnonzero(col == c))
-        idx.sort(key=lambda i: (conn.cell_class[i], conn.neurons[i]))
-        y[idx] = np.linspace(0, 1, len(idx))
-    for _ in range(3):
-        for c in range(3):
-            y = order_column(list(np.flatnonzero(col == c)), y, adj)
-    x = col.astype(float)
+    x, y = whole_layout(conn)
 
     def curves(pairs, bulge):
         segs = []

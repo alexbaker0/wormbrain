@@ -21,7 +21,8 @@ from pathlib import Path
 from PIL import Image
 
 from wormbrain.chemotaxis import env_config, load_run_config
-from wormbrain.export import export_model
+from wormbrain.export import build_brain, export_model
+from wormbrain.layout import CIRCUIT, circuit_edges, circuit_members, whole_layout
 
 RUNS = Path("reports/comparison/runs")
 TITLES = {"real": "Real connectome", "rewired": "Rewired", "random": "Random wiring"}
@@ -45,11 +46,26 @@ def wiring_image(path=Path("reports/connectome/connectome.png"), width=2000) -> 
 def main():
     cfg = load_run_config("configs/chemotaxis.yaml")
     body = env_config(cfg["env"], cfg["env_overrides"])["body"]
-    models = [export_model(best(c), title, body) for c, title in TITLES.items()]
+    models = []
+    for condition, title in TITLES.items():
+        run = best(condition)
+        m = export_model(run, title, body)
+        m["circuitEdges"] = circuit_edges(build_brain(run).conn)  # this brain's own wiring
+        models.append(m)
+    real = build_brain(best("real")).conn
+    x, y = whole_layout(real)  # neuron positions are shared; edges come from each brain
+    members = circuit_members(real)
+    layout = {
+        "x": x.tolist(),
+        "y": y.tolist(),
+        "circuit": [{"name": c, "col": col, "row": row, "members": members[c]}
+                    for c, col, row in CIRCUIT],
+    }  # fmt: skip
     sim = Path("web/sim.js").read_text()
     sim = re.sub(r"^export ", "", sim, flags=re.M)  # inline as a classic script
     page = Path("web/index.html").read_text()
     page = page.replace("/*__SIM__*/", sim).replace("/*__MODELS__*/", json.dumps(models))
+    page = page.replace("/*__LAYOUT__*/", json.dumps(layout))
     page = page.replace("__WIRING__", wiring_image())
     OUT.mkdir(parents=True, exist_ok=True)
     (OUT / "index.html").write_text(page)
