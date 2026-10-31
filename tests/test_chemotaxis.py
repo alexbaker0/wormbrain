@@ -52,3 +52,16 @@ def test_tiny_run_trains_checkpoints_and_evaluates(tmp_path):
     again = train_and_evaluate(cfg, tmp_path)
     assert again["x"] == res["x"]
     assert json.loads((tmp_path / "result.json").read_text())["run"] == res["run"]
+
+
+def test_fine_tuning_starts_from_an_earlier_brain(tmp_path):
+    cfg = tiny_config()
+    first = train_and_evaluate(cfg, tmp_path / "first")
+    src = tmp_path / "earlier"
+    src.mkdir()
+    (src / f"{first['run']}.json").write_text(json.dumps(first))
+    tuned_cfg = tiny_config(init_from=str(src))
+    tuned = train_and_evaluate(tuned_cfg, tmp_path / "tuned")
+    s1 = json.loads((tmp_path / "tuned" / "stage1.json").read_text())
+    assert s1["best_x"] == first["x"] and s1["reused_from"].endswith(f"{first['run']}.json")
+    assert np.isfinite(tuned["test"]["gaussian"]["brain"]["reward_mean"])

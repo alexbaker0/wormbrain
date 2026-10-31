@@ -223,6 +223,14 @@ def train_and_evaluate(cfg: dict, out_dir: Path, verbose: bool = False) -> dict:
     reuse = Path(cfg["stage1_from"]) / run_name(cfg) if cfg.get("stage1_from") else None
     if s1_path.exists():
         s1 = json.loads(s1_path.read_text())
+    elif cfg.get("init_from"):
+        # fine-tuning: start the chemotaxis stage from an earlier trained brain
+        src_path = Path(cfg["init_from"]) / f"{run_name(cfg)}.json"
+        src = json.loads(src_path.read_text())
+        s1 = {"best_x": src["x"], "forward_speed_mm_s": src["stage1_speed_mm_s"],
+              "reused_from": str(src_path), "init_test_reward":
+              src["test"]["gaussian"]["brain"]["reward_mean"]}  # fmt: skip
+        s1_path.write_text(json.dumps(s1))
     elif reuse and _same_stage1(cfg, reuse):
         s1 = json.loads((reuse / "stage1.json").read_text()) | {"reused_from": str(reuse)}
         s1_path.write_text(json.dumps(s1))
