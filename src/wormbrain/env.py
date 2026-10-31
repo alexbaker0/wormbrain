@@ -87,6 +87,7 @@ class Episode:
     conc: np.ndarray  # (T, P) concentration at the head
     power: np.ndarray  # (T, P) mean dissipated power since the previous record
     nodes: np.ndarray | None  # (T, P, n + 1, 2) body shapes, if recorded
+    food: np.ndarray | None = None  # (T, 2) position of the (first) food peak over time
 
 
 def run_episode(
@@ -99,13 +100,18 @@ def run_episode(
     body: Body | None = None,
     record_every: int = 10,
     record_shapes: bool = False,
+    food_events: list | None = None,
 ) -> Episode:
+    """``food_events``: [(time, [x, y]), ...] moves the food peak during the episode
+    (food patches run out); the field is restored afterwards."""
     body = body or Body()
+    events = sorted(food_events or [], key=lambda e: e[0])
+    initial_peak = field.center if field.kind != "linear" else None
     state = body.reset(head, heading)
     n = len(state.theta0)
     controller.reset(n)
     steps = int(round(duration / dt))
-    rec = {k: [] for k in ("t", "head", "centroid", "conc", "power", "nodes")}
+    rec = {k: [] for k in ("t", "head", "centroid", "conc", "power", "nodes", "food")}
     power_acc = np.zeros(n)
 
     def record(k):
@@ -114,16 +120,21 @@ def run_episode(
         rec["centroid"].append(body.centroid(state))
         rec["conc"].append(field.conc(state.head))
         rec["power"].append(power_acc / record_every)
+        rec["food"].append(field.center)
         if record_shapes:
             rec["nodes"].append(body.nodes(state))
 
     record(0)
     for k in range(1, steps + 1):
+        while events and (k - 1) * dt >= events[0][0]:
+            field.move_peak(events.pop(0)[1])
         obs = {"t": (k - 1) * dt, "conc": field.conc(state.head), "kappa": state.kappa}
         power_acc += body.step(state, controller.step(obs, dt), dt)
         if k % record_every == 0:
             record(k)
             power_acc[:] = 0
+    if initial_peak is not None:
+        field.move_peak(initial_peak)
     return Episode(
         t=np.array(rec["t"]),
         head=np.array(rec["head"]),
@@ -131,6 +142,7 @@ def run_episode(
         conc=np.array(rec["conc"]),
         power=np.array(rec["power"]),
         nodes=np.array(rec["nodes"]) if record_shapes else None,
+        food=np.array(rec["food"]),
     )
 
 
@@ -154,6 +166,14 @@ def reward(ep: Episode, field: Field, cfg: dict | None = None) -> np.ndarray:
         r = (ep.conc[-tail:].mean(0) - ep.conc[0]) / scale
     elif kind == "final_distance":
         r = -np.linalg.norm(ep.centroid[-1] - field.center, axis=-1)
+    elif kind == "food_time" and field.kind != "linear":
+        # share of the episode with the head within ``radius`` mm of the (possibly
+        # moving) food, i.e. time spent eating; a linear gradient has no food, so it
+        # falls back to concentration gain
+        dist = np.linalg.norm(ep.head - ep.food[:, None, :], axis=-1)
+        r = (dist < cfg.get("radius", 1.0)).mean(0)
+    elif kind == "food_time":
+        return reward(ep, field, cfg | {"type": "concentration_gain"})
     else:
         raise ValueError(f"unknown reward type {kind!r}")
     r = r - cfg.get("energy_weight", 0.0) * ep.power[1:].mean(0)

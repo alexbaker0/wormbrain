@@ -1,0 +1,64 @@
+# Natural-reward scenario (overnight study): fine-tunes the milestone-6 brains like
+# chemotaxis_finetune.yaml, but with NO straightness penalty. Worms must keep making
+# net progress (idle penalty on progress speed).
+# E. Far food: start 8-12 mm away, 180 s episodes; reward = mean concentration.
+
+condition: real
+glutamate: excitatory
+seed: 0
+bounded: true
+activation: tanh
+env:
+- configs/env.yaml
+env_overrides:
+  start:
+    distance:
+    - 8.0
+    - 12.0
+  episode:
+    duration: 180.0
+    dt: 0.02
+  reward:
+    type: concentration_gain
+    final_fraction: 1.0
+    energy_weight: 0.05
+    min_speed: 0.1
+    idle_penalty: 0.5
+    speed_measure: progress
+init_from: reports/comparison/runs
+stage1:
+  generations: 100
+  popsize: 24
+  sigma0: 0.5
+stage2:
+  generations: 100
+  popsize: 24
+  sigma0: 0.2
+  n_starts: 8
+evaluation:
+  n_starts: 32
+  validation_seed: 500
+  test_seed: 1000
+  arenas:
+    gaussian:
+      env:
+      - configs/env.yaml
+    far_start:
+      env:
+      - configs/env.yaml
+      overrides:
+        start:
+          distance:
+          - 8.0
+          - 10.0
+        episode:
+          duration: 150.0
+          dt: 0.02
+    two_peaks:
+      env:
+      - configs/env.yaml
+      - configs/env_two_peaks.yaml
+    linear:
+      env:
+      - configs/env.yaml
+      - configs/env_linear.yaml

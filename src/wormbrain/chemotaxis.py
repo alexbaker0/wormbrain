@@ -59,13 +59,25 @@ def run_name(cfg: dict) -> str:
     return f"{cfg['condition']}_glu-{cfg['glutamate']}_seed{cfg['seed']}"
 
 
-def batch_rewards(brain, body, X, field, env, starts) -> np.ndarray:
+def food_events(env: dict, field: Field, seed: int) -> list:
+    """With ``moving_food: {at, distance}``: the food jumps once, at time ``at``, to a
+    random spot ``distance`` mm away (food patches run out). Otherwise no events."""
+    mf = env.get("moving_food")
+    if not mf:
+        return []
+    rng = np.random.default_rng(seed + 7_777)
+    r, a = rng.uniform(*mf["distance"]), rng.uniform(0, 2 * np.pi)
+    return [(mf["at"], (field.center + r * np.array([np.cos(a), np.sin(a)])).tolist())]
+
+
+def batch_rewards(brain, body, X, field, env, starts, events=None) -> np.ndarray:
     """Mean reward of each parameter vector in X (P, D) over the same starts."""
     head, heading = starts
     n = len(heading)
     Xr = np.repeat(X, n, axis=0)
     ep = run_episode(BrainController(brain, Xr), field, np.tile(head, (len(X), 1)),
-                     np.tile(heading, len(X)), body=body, **env["episode"])  # fmt: skip
+                     np.tile(heading, len(X)), body=body, food_events=events,
+                     **env["episode"])  # fmt: skip
     return reward(ep, field, env["reward"]).reshape(len(X), n).mean(1)
 
 
@@ -128,7 +140,7 @@ def stage2(cfg: dict, x_start: np.ndarray, verbose: bool = False, log_path=None)
         seed = 10_000 * (cfg["seed"] + 1) + gen["k"]  # new starts each generation
         gen["k"] += 1
         starts = start_positions(env["start"], field, s2["n_starts"], seed)
-        r = batch_rewards(brain, body, X, field, env, starts)
+        r = batch_rewards(brain, body, X, field, env, starts, food_events(env, field, seed))
         return r - straightness_penalty(brain, body, X, cfg, seed)
 
     res = cmaes(objective, x_start, sigma0=s2["sigma0"], popsize=s2["popsize"],
@@ -139,7 +151,8 @@ def stage2(cfg: dict, x_start: np.ndarray, verbose: bool = False, log_path=None)
     val = cfg["evaluation"]
     starts = start_positions(env["start"], field, val["n_starts"], val["validation_seed"])
     cand = np.stack([res["best_x"], res["mean_x"]])
-    scores = batch_rewards(brain, body, cand, field, env, starts)
+    scores = batch_rewards(brain, body, cand, field, env, starts,
+                           food_events(env, field, val["validation_seed"]))  # fmt: skip
     scores = scores - straightness_penalty(brain, body, cand, cfg, val["validation_seed"])
     chosen = int(np.argmax(scores))
     return {

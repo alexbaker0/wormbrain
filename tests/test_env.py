@@ -120,3 +120,14 @@ def test_progress_speed_ignores_wiggling_in_place():
     crawl = run_episode(TravelingWave(), f, np.zeros((1, 2)), np.zeros(1), duration=30.0)
     assert progress_speed(wiggle)[0] < 0.01
     assert progress_speed(crawl)[0] == pytest.approx(0.17, abs=0.03)
+
+
+def test_moving_food_and_food_time():
+    f = Field({"type": "gaussian", "peak": [0.0, 0.0], "sigma": 4.0})
+    head = np.array([[0.2, 0.0]])
+    ep = run_episode(TravelingWave(amplitude=0.0), f, head, np.zeros(1), duration=20.0,
+                     food_events=[(10.0, [5.0, 5.0])])  # fmt: skip
+    assert np.allclose(ep.food[0], [0, 0]) and np.allclose(ep.food[-1], [5, 5])
+    np.testing.assert_allclose(f.center, [0, 0])  # field restored afterwards
+    eaten = reward(ep, f, {"type": "food_time", "radius": 1.0})
+    assert 0.45 < eaten[0] < 0.56  # at the food until it moved half way through
