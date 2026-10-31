@@ -21,14 +21,19 @@ RUNS = Path("runs/chemotaxis")
 
 
 def run_one(job):
-    config, condition, glutamate, seed = job
+    config, condition, glutamate, seed, report = job
     from wormbrain.chemotaxis import load_run_config, run_name, train_and_evaluate
 
     cfg = load_run_config(config, condition=condition, glutamate=glutamate, seed=seed)
     out = RUNS / run_name(cfg)
+    copy = Path(report) / "runs" / f"{run_name(cfg)}.json"
+    copy.parent.mkdir(parents=True, exist_ok=True)
     if (out / "result.json").exists():
-        return json.loads((out / "result.json").read_text())
+        res = json.loads((out / "result.json").read_text())
+        copy.write_text(json.dumps(res))
+        return res
     res = train_and_evaluate(cfg, out)
+    copy.write_text(json.dumps(res))  # each finished run lands in the report at once
     g = res["test"]["gaussian"]["brain"]
     print(f"done {res['run']}: test reward {g['reward_mean']:+.3f}, "
           f"reached {g['reached_1mm']:.0%}, {res['stage2_seconds']:.0f}s", flush=True)  # fmt: skip
@@ -106,8 +111,9 @@ def main():
 
     for var in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS"):
         os.environ[var] = "1"
-    jobs = list(itertools.product([args.config], args.conditions, args.glutamate,
-                                  range(args.seeds)))  # fmt: skip
+    # seed by seed across graphs, so an interrupted study leaves balanced results
+    order = itertools.product(range(args.seeds), args.conditions, args.glutamate)
+    jobs = [(args.config, c, g, s, args.out) for s, c, g in order]
     with ProcessPoolExecutor(args.workers) as pool:
         results = list(pool.map(run_one, jobs))
     summarise(results, Path(args.out))
