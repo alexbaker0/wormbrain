@@ -2,8 +2,8 @@
 
     uv run python scripts/chemotaxis_figure.py [--results reports/chemotaxis_pilot_tanh]
 
-For every run in <results>/runs/*.json (or <results>/results.json): test-set paths in the training arena, and
-the same brain with ASEL and ASER silenced (lesioned). If the worm climbs by sensing
+For every run in <results>/runs/*.json (or <results>/results.json): test-set paths in
+the training arena, and the same brain with ASEL and ASER silenced (lesioned). If the worm climbs by sensing
 salt, silencing the sensors should abolish chemotaxis. Writes
 <results>/trajectories.png and <results>/sensor_lesion.md.
 """
