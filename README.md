@@ -244,6 +244,21 @@ C. elegans. The cause is the reward: with movement required, circling scored 0
 while untargeted straight crawling scored about −0.5, so training found circling
 first and only had to make it drift.
 
+### Task v2 pilot (straightness penalty, faster-approach reward)
+
+[`configs/chemotaxis_straight.yaml`](configs/chemotaxis_straight.yaml), real graph,
+2 seeds x 2 glutamate settings ([`reports/chemotaxis_straight_pilot/`](reports/chemotaxis_straight_pilot/summary.md)):
+
+- All four brains now crawl roughly straight on a flat field (0.6–5.9°/s, was 10–45°/s).
+- One of four learned chemotaxis, and its paths look like real worms: fairly straight
+  runs with turns, converging on the food (test reward +0.22 vs +0.06 for hand-coded
+  steering; climbed from 91% of starts; also good in unseen arenas). Silencing its
+  salt sensors abolishes this.
+- The other three exposed two loopholes: one crawls in wide circles slow enough to stay
+  under the 10°/s limit (turning is measured per second, not per millimetre), and one
+  wiggles on the spot, which the minimum-speed rule counts as movement because it
+  measures the centroid's path length, jitter included.
+
 ## Limitations (so far)
 
 - Synapse signs are inferred from transmitter identity; glutamate's sign is a
