@@ -182,3 +182,19 @@ def load_env_config(*paths) -> dict:
             else:
                 cfg[key] = value
     return cfg
+
+
+def mean_turning_rate(ep: Episode, window: float = 2.0, settle: float = 10.0) -> np.ndarray:
+    """Mean signed turning rate (deg/s, + = counter-clockwise) of each worm's path.
+
+    The travel direction is the centroid's displacement over ``window`` seconds;
+    the first ``settle`` seconds are skipped. A worm crawling in a fixed circle
+    turns at a steady nonzero rate; one crawling straight (even if it wiggles)
+    scores about 0.
+    """
+    rec_dt = ep.t[1] - ep.t[0]
+    k = max(1, int(round(window / rec_dt)))
+    d = ep.centroid[k:] - ep.centroid[:-k]
+    ang = np.unwrap(np.arctan2(d[..., 1], d[..., 0]), axis=0)
+    s = min(len(ang) - 2, int(round(settle / rec_dt)))
+    return np.rad2deg(ang[-1] - ang[s]) / ((len(ang) - 1 - s) * rec_dt)

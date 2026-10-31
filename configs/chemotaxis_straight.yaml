@@ -1,0 +1,53 @@
+# Chemotaxis task v2 (after milestone 6): penalise circling, reward fast approach.
+# Same as chemotaxis.yaml except: starts 4-8 mm from food, reward = mean concentration
+# over the whole episode, a straightness penalty on a flat field, far-start test 8-10 mm.
+# The crawling stage is unchanged, so it is reused from the milestone-6 runs.
+
+condition: real          # real | rewired | random | sign_shuffled | weight_shuffled
+glutamate: excitatory    # excitatory | inhibitory (both are run; see README)
+seed: 0
+bounded: true            # parameter ranges limited (see src/wormbrain/brain.py BOUNDS)
+activation: tanh         # neuron output curve; sigmoid let no salt signal through
+
+env: [configs/env.yaml]
+env_overrides:
+  start: {distance: [4.0, 8.0]}     # mm from food
+  episode: {duration: 90.0, dt: 0.02}   # 0.02 s: see README for the accuracy cost
+  reward:
+    type: concentration_gain
+    final_fraction: 1.0    # mean over the whole episode minus the start: rewards getting there fast
+    energy_weight: 0.05
+    min_speed: 0.1         # mm/s; slower than this is penalised (worms keep crawling)
+    idle_penalty: 0.5
+
+straightness:            # penalty = weight x (mean |turning| on a flat field - threshold)
+  weight: 0.01           # per deg/s; circling at 30 deg/s costs 0.2
+  threshold_deg_s: 10.0
+  n_headings: 2
+  duration: 60.0
+  dt: 0.02
+
+stage1_from: runs/chemotaxis   # identical crawling stage, reused from milestone 6
+
+stage1:                  # crawling; unchanged from chemotaxis.yaml
+  generations: 100
+  popsize: 24
+  sigma0: 0.5
+
+stage2:                  # chemotaxis
+  generations: 150
+  popsize: 24
+  sigma0: 0.3
+  n_starts: 8            # random starts per candidate per generation, shared by all candidates
+
+evaluation:
+  n_starts: 32
+  validation_seed: 500
+  test_seed: 1000
+  arenas:                # the training arena first; the rest are never seen in training
+    gaussian: {env: [configs/env.yaml]}
+    far_start:
+      env: [configs/env.yaml]
+      overrides: {start: {distance: [8.0, 10.0]}, episode: {duration: 150.0, dt: 0.02}}
+    two_peaks: {env: [configs/env.yaml, configs/env_two_peaks.yaml]}
+    linear: {env: [configs/env.yaml, configs/env_linear.yaml]}

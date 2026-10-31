@@ -5,6 +5,7 @@ from wormbrain.controllers import GradientSteering, TravelingWave
 from wormbrain.env import (
     Field,
     load_env_config,
+    mean_turning_rate,
     path_speed,
     reward,
     run_episode,
@@ -79,3 +80,14 @@ def test_idle_penalty_punishes_stopping_but_not_crawling():
     np.testing.assert_allclose(reward(still, f, cfg) - reward(still, f), -0.5)
     np.testing.assert_allclose(reward(crawl, f, cfg), reward(crawl, f))  # 0.17 mm/s > 0.1
     assert np.all(path_speed(crawl) > 0.15) and np.all(path_speed(still) < 1e-9)
+
+
+def test_mean_turning_rate():
+    f = Field({"type": "linear", "slope": 0.0, "offset": 1.0})
+    straight = run_episode(TravelingWave(), f, np.zeros((1, 2)), np.zeros(1), duration=40.0)
+    left = run_episode(TravelingWave(bias=0.2), f, np.zeros((1, 2)), np.zeros(1), duration=40.0)
+    right = run_episode(TravelingWave(amplitude=-1.0, bias=-0.2), f, np.zeros((1, 2)),
+                        np.zeros(1), duration=40.0)  # fmt: skip
+    assert abs(mean_turning_rate(straight)[0]) < 1.0
+    assert abs(mean_turning_rate(left)[0]) > 10.0
+    np.testing.assert_allclose(mean_turning_rate(left), -mean_turning_rate(right), rtol=1e-6)

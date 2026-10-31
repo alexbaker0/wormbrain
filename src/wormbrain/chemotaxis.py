@@ -24,8 +24,16 @@ import yaml
 
 from .brain import BrainController
 from .controllers import GradientSteering, TravelingWave
-from .env import Field, load_env_config, path_speed, reward, run_episode, start_positions
-from .locomotion import setup, train_locomotion
+from .env import (
+    Field,
+    load_env_config,
+    mean_turning_rate,
+    path_speed,
+    reward,
+    run_episode,
+    start_positions,
+)
+from .locomotion import FLAT, setup, train_locomotion
 from .train import cmaes
 
 LOCOMOTION_RUNS = Path("reports/locomotion_study/runs")
@@ -60,6 +68,29 @@ def batch_rewards(brain, body, X, field, env, starts) -> np.ndarray:
     return reward(ep, field, env["reward"]).reshape(len(X), n).mean(1)
 
 
+def flat_turning(brain, body, X, n_headings: int, duration: float, dt: float, seed: int):
+    """Mean |turning rate| (deg/s) of each parameter vector crawling on a flat field."""
+    headings = np.random.default_rng(seed).uniform(0, 2 * np.pi, n_headings)
+    Xr = np.repeat(np.atleast_2d(X), n_headings, axis=0)
+    ep = run_episode(BrainController(brain, Xr), FLAT, np.zeros((len(Xr), 2)),
+                     np.tile(headings, len(Xr) // n_headings), duration=duration, dt=dt,
+                     body=body)  # fmt: skip
+    return np.abs(mean_turning_rate(ep)).reshape(-1, n_headings).mean(1)
+
+
+def straightness_penalty(brain, body, X, cfg: dict, seed: int) -> np.ndarray:
+    """``weight`` x turning above ``threshold`` deg/s on a flat field (0 if not configured).
+
+    Real worms crawl roughly straight when nothing guides them; without this term
+    training settles on worms that circle one way and drift up the gradient.
+    """
+    st = cfg.get("straightness")
+    if not st:
+        return np.zeros(len(np.atleast_2d(X)))
+    turn = flat_turning(brain, body, X, st["n_headings"], st["duration"], st["dt"], seed)
+    return st["weight"] * np.maximum(0.0, turn - st["threshold_deg_s"])
+
+
 def stage1(cfg: dict, verbose: bool = False) -> dict:
     """Crawling stage; reuses the locomotion study's identical run if it exists."""
     s1 = cfg["stage1"]
@@ -89,7 +120,8 @@ def stage2(cfg: dict, x_start: np.ndarray, verbose: bool = False, log_path=None)
         seed = 10_000 * (cfg["seed"] + 1) + gen["k"]  # new starts each generation
         gen["k"] += 1
         starts = start_positions(env["start"], field, s2["n_starts"], seed)
-        return batch_rewards(brain, body, X, field, env, starts)
+        r = batch_rewards(brain, body, X, field, env, starts)
+        return r - straightness_penalty(brain, body, X, cfg, seed)
 
     res = cmaes(objective, x_start, sigma0=s2["sigma0"], popsize=s2["popsize"],
                 generations=s2["generations"], seed=cfg["seed"], log_path=log_path,
@@ -100,6 +132,7 @@ def stage2(cfg: dict, x_start: np.ndarray, verbose: bool = False, log_path=None)
     starts = start_positions(env["start"], field, val["n_starts"], val["validation_seed"])
     cand = np.stack([res["best_x"], res["mean_x"]])
     scores = batch_rewards(brain, body, cand, field, env, starts)
+    scores = scores - straightness_penalty(brain, body, cand, cfg, val["validation_seed"])
     chosen = int(np.argmax(scores))
     return {
         "x": cand[chosen].tolist(),
@@ -153,12 +186,25 @@ def evaluate(cfg: dict, x) -> dict:
     return out
 
 
+def _same_stage1(cfg: dict, other: Path) -> bool:
+    """Was the crawling stage in ``other`` run with identical settings and model?"""
+    if not (other / "stage1.json").exists() or not (other / "config.yaml").exists():
+        return False
+    o = yaml.safe_load((other / "config.yaml").read_text())
+    keys = ("condition", "glutamate", "seed", "bounded", "activation", "stage1")
+    return all(o.get(k) == cfg.get(k) for k in keys)
+
+
 def train_and_evaluate(cfg: dict, out_dir: Path, verbose: bool = False) -> dict:
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "config.yaml").write_text(yaml.safe_dump(cfg, sort_keys=False))
     s1_path, s2_path = out_dir / "stage1.json", out_dir / "stage2.json"
+    reuse = Path(cfg["stage1_from"]) / run_name(cfg) if cfg.get("stage1_from") else None
     if s1_path.exists():
         s1 = json.loads(s1_path.read_text())
+    elif reuse and _same_stage1(cfg, reuse):
+        s1 = json.loads((reuse / "stage1.json").read_text()) | {"reused_from": str(reuse)}
+        s1_path.write_text(json.dumps(s1))
     else:
         s1 = stage1(cfg, verbose)
         s1_path.write_text(json.dumps(s1))
@@ -181,6 +227,23 @@ def train_and_evaluate(cfg: dict, out_dir: Path, verbose: bool = False) -> dict:
         "curve_mean": [h["mean"] for h in s2["history"]],
         "stage2_seconds": s2["history"][-1]["seconds"],
         "test": evaluate(cfg, np.array(s2["x"])),
+        "flat_turning_deg_s": float(
+            flat_turning(
+                *setup(
+                    cfg["condition"],
+                    cfg["seed"],
+                    cfg["glutamate"],
+                    True,
+                    cfg.get("bounded", True),
+                    cfg.get("activation", "tanh"),
+                )[:2],
+                np.array(s2["x"]),
+                8,
+                120.0,
+                0.02,
+                cfg["evaluation"]["test_seed"],
+            )[0]
+        ),  # fmt: skip
         "x": s2["x"],
     }
     (out_dir / "result.json").write_text(json.dumps(result))

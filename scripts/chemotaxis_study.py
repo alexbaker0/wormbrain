@@ -25,7 +25,8 @@ def run_one(job):
     from wormbrain.chemotaxis import load_run_config, run_name, train_and_evaluate
 
     cfg = load_run_config(config, condition=condition, glutamate=glutamate, seed=seed)
-    out = RUNS / run_name(cfg)
+    stem = Path(config).stem  # milestone-6 runs (chemotaxis.yaml) live directly in RUNS
+    out = (RUNS if stem == "chemotaxis" else RUNS / stem) / run_name(cfg)
     copy = Path(report) / "runs" / f"{run_name(cfg)}.json"
     copy.parent.mkdir(parents=True, exist_ok=True)
     if (out / "result.json").exists():
