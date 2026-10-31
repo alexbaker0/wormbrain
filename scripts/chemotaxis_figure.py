@@ -2,7 +2,7 @@
 
     uv run python scripts/chemotaxis_figure.py [--results reports/chemotaxis_pilot_tanh]
 
-For every run in <results>/results.json: test-set paths in the training arena, and
+For every run in <results>/runs/*.json (or <results>/results.json): test-set paths in the training arena, and
 the same brain with ASEL and ASER silenced (lesioned). If the worm climbs by sensing
 salt, silencing the sensors should abolish chemotaxis. Writes
 <results>/trajectories.png and <results>/sensor_lesion.md.
@@ -42,9 +42,13 @@ def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--results", default="reports/chemotaxis_pilot_tanh")
     p.add_argument("--config", default="configs/chemotaxis.yaml")
+    p.add_argument("--panels", type=int, default=6, help="most paths figures to draw")
     args = p.parse_args()
     out = Path(args.results)
-    results = json.loads((out / "results.json").read_text())
+    if (out / "runs").is_dir():  # one file per finished run (works on partial studies)
+        results = [json.loads(f.read_text()) for f in sorted((out / "runs").glob("*.json"))]
+    else:
+        results = json.loads((out / "results.json").read_text())
 
     run_cfg = load_run_config(args.config)
     env = env_config(run_cfg["env"], run_cfg["env_overrides"])
@@ -54,12 +58,17 @@ def main():
     body = make_body(env["body"])
     gain_cfg = env["reward"] | {"energy_weight": 0.0, "idle_penalty": 0.0}
 
-    fig, axes = plt.subplots(2, len(results), figsize=(4 * len(results), 8), squeeze=False)
+    # draw the best run of each graph first, then the rest, up to --panels
+    ranked = sorted(results, key=lambda r: -r["test"]["gaussian"]["brain"]["reward_mean"])
+    firsts = list({r["condition"]: r for r in reversed(ranked)}.values())
+    shown = (firsts + [r for r in ranked if r not in firsts])[: args.panels]
+    fig, axes = plt.subplots(2, len(shown), figsize=(4 * len(shown), 8), squeeze=False)
     g = np.linspace(-8, 8, 160)
     xx, yy = np.meshgrid(g, g)
     conc = field.conc(np.stack([xx, yy], -1))
     rows = []
-    for col, r in enumerate(results):
+    for r in results:
+        col = shown.index(r) if r in shown else None
         x = np.repeat(np.array(r["x"])[None], len(heading), 0)
         stats = {}
         for row, (label, lesion) in enumerate([("intact", ()), ("ASEL+ASER silenced", SENSORS)]):
@@ -68,6 +77,8 @@ def main():
             gain = reward(ep, field, gain_cfg)
             dist = np.linalg.norm(ep.centroid[-1] - field.center, axis=1)
             stats[label] = (gain.mean(), (gain > 0).mean(), dist.mean())
+            if col is None:
+                continue
             ax = axes[row, col]
             ax.contourf(xx, yy, conc, levels=15, cmap="Greens")
             for k in range(12):

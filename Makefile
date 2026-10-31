@@ -1,4 +1,4 @@
-.PHONY: test lint stats oscillator
+.PHONY: test lint stats oscillator report
 
 test:
 	uv run pytest -q
@@ -12,3 +12,8 @@ stats:
 
 oscillator:
 	uv run python scripts/oscillator_demo.py
+
+# milestone 6: pre-registered comparison report and sensor-lesion check
+report:
+	uv run python scripts/report.py --results reports/comparison
+	uv run python scripts/chemotaxis_figure.py --results reports/comparison
