@@ -211,6 +211,16 @@ starts.
 
 ![comparison](reports/comparison/comparison.png)
 
+## Interactive page
+
+[`web/dist/index.html`](web/dist/index.html) (also on
+[alexbaker0.github.io/wormbrain](https://alexbaker0.github.io/wormbrain/)) runs the
+best trained real, rewired and random brains live in the browser: tap anywhere to
+move the food and watch the worm turn towards it, or silence its salt sensors.
+`web/sim.js` is a plain JavaScript port of the brain and body; `tests/test_web.py`
+checks it against Python step for step (largest difference about 1e-12 over 120 s of
+simulated time). Rebuild with `make web`.
+
 ## Limitations (so far)
 
 - Synapse signs are inferred from transmitter identity; glutamate's sign is a

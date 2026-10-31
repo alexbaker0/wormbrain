@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Connectome Worm</title>
+<style>
+  :root { --bg:#f6f7fb; --card:#ffffff; --ink:#1d2433; --muted:#5f6b7f; --line:#dfe3ec;
+          --accent:#0f8b6c; --worm:#c2410c; --trail:#2563eb; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --bg:#10131a; --card:#171b24; --ink:#e7eaf0;
+      --muted:#9aa4b5; --line:#2a3140; --accent:#34d399; --worm:#fb923c; --trail:#60a5fa; } }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink);
+         font:14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width:1180px; margin:0 auto; padding:16px; }
+  h1 { font-size:20px; margin:4px 0 2px; }
+  .sub { color:var(--muted); margin:0 0 12px; }
+  .bar { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:12px; }
+  .bar button, .bar select { font:inherit; border:1px solid var(--line); background:var(--card);
+    color:var(--ink); padding:7px 12px; border-radius:8px; cursor:pointer; }
+  .bar button.on { border-color:var(--accent); box-shadow:inset 0 0 0 1px var(--accent); }
+  .bar .primary { background:var(--accent); border-color:var(--accent); color:#fff; min-width:84px; }
+  .bar label { display:flex; gap:6px; align-items:center; color:var(--ink); cursor:pointer; }
+  .sep { width:1px; height:24px; background:var(--line); margin:0 4px; }
+  .grid { display:grid; grid-template-columns: minmax(0,1.1fr) minmax(0,1fr); gap:12px; }
+  @media (max-width: 820px) { .grid { grid-template-columns: 1fr; } }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:10px; }
+  .card h2 { font-size:13px; margin:0 0 6px; color:var(--muted); font-weight:600; }
+  canvas { width:100%; display:block; border-radius:8px; }
+  #arena { cursor:crosshair; touch-action:manipulation; }
+  .stat { color:var(--muted); font-variant-numeric: tabular-nums; margin-top:8px; }
+  .note { color:var(--muted); font-size:12px; margin-top:12px; }
+  .legend { display:flex; gap:10px; align-items:center; font-size:12px; color:var(--muted); margin-top:6px; }
+  .scale { width:120px; height:10px; border-radius:3px;
+           background:linear-gradient(90deg,#2563eb,#e5e7eb 50%,#dc2626); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Connectome Worm</h1>
+  <p class="sub">A simulated worm whose brain is the wiring diagram of <i>C. elegans</i>
+    (282 neurons), trained to find food by smelling salt. <b>Tap or click anywhere in the arena
+    to move the food</b> and watch the worm turn towards it.</p>
+  <div class="bar">
+    <span id="brains"></span>
+    <span class="sep"></span>
+    <label><input type="checkbox" id="lesion"> Silence salt sensors (ASEL, ASER)</label>
+    <span class="sep"></span>
+    <button class="primary" id="play">Pause</button>
+    <select id="speed" aria-label="speed"><option value="1">1×</option><option value="4">4×</option>
+      <option value="10" selected>10×</option><option value="20">20×</option></select>
+    <button id="reset">New start</button>
+  </div>
+  <div class="grid">
+    <div class="card">
+      <h2>Arena (20 mm across): green is the salt gradient, the dot is the food</h2>
+      <canvas id="arena" width="640" height="640"></canvas>
+      <div class="stat" id="stat"></div>
+    </div>
+    <div class="card">
+      <h2>All 282 neurons: transmitter release right now</h2>
+      <canvas id="neurons" width="560" height="300"></canvas>
+      <div class="legend"><span>less</span><div class="scale"></div><span>more than at rest</span></div>
+      <h2 style="margin-top:12px">Key neurons, last 20 s (each scaled to its own range)</h2>
+      <canvas id="traces" width="560" height="300"></canvas>
+    </div>
+  </div>
+  <p class="note" id="note"></p>
+  <p class="note">The brain and body run live in your browser: graded neurons wired as in the
+    Cook et al. 2019 connectome, a 16-segment body crawling on agar. Only per-class neuron
+    parameters were trained. Real worms crawl at about 0.2 mm/s, so 1× is real time.
+    From the <a href="https://github.com/alexbaker0/wormbrain">wormbrain</a> project, where the
+    real wiring did <i>not</i> learn this better than rewired or random wiring.
+    <a href="replay.html">Recorded replay</a>.</p>
+</main>
+<script>
+/*__SIM__*/
+const MODELS = /*__MODELS__*/;
+const DT = 0.02, KEY = ["ASEL", "ASER", "AIYL", "AIZL", "AIBL", "RIAL", "SMDDL", "SMDVL",
+  "RMDDL", "RMDVL", "AVAL", "AVBL"], VIEW = 10, ROLE_ORDER = ["sensory", "inter", "motor", "other"];
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const field = new Field([0, 0], 4, 1);
+let modelIdx = 0, worm, playing = true, acc = 0, last = performance.now();
+let trail = [], hist = [], sampleAcc = 0;
+
+function startPos() {
+  const r = 4 + 2 * Math.random(), a = 2 * Math.PI * Math.random();
+  return [[field.peak[0] + r * Math.cos(a), field.peak[1] + r * Math.sin(a)], 2 * Math.PI * Math.random()];
+}
+function newBrain(keepBody) {
+  const lesion = document.getElementById("lesion").checked ? ["ASEL", "ASER"] : [];
+  const old = worm && worm.body;
+  worm = new Worm(MODELS[modelIdx], field, { lesion, dt: DT });
+  if (keepBody && old) { worm.body = old; worm.brain.reset(); worm.k = 0; }
+  else { const [h, hd] = startPos(); worm.reset(h, hd); trail = []; }
+  hist = []; order = orderFor(MODELS[modelIdx]); keyIdx = KEY.map((k) => MODELS[modelIdx].neurons.indexOf(k));
+  document.getElementById("note").textContent = `${MODELS[modelIdx].title}: best of 8 trained runs ` +
+    `(${MODELS[modelIdx].run}); over 32 held-out starts it scored ${MODELS[modelIdx].testReward.toFixed(2)} ` +
+    `(hand-coded steering 0.08).`;
+}
+let order, keyIdx;
+function orderFor(m) {
+  return m.neurons.map((_, i) => i).sort((a, b) => ROLE_ORDER.indexOf(m.roles[a]) - ROLE_ORDER.indexOf(m.roles[b])
+    || m.classes[a].localeCompare(m.classes[b]) || m.neurons[a].localeCompare(m.neurons[b]));
+}
+
+// controls
+const brains = document.getElementById("brains");
+MODELS.forEach((m, i) => { const b = document.createElement("button"); b.textContent = m.title;
+  b.onclick = () => { modelIdx = i; newBrain(true); mark(); }; brains.appendChild(b); brains.append(" "); });
+const mark = () => [...brains.querySelectorAll("button")].forEach((b, i) => b.classList.toggle("on", i === modelIdx));
+document.getElementById("lesion").onchange = () => newBrain(true);
+document.getElementById("reset").onclick = () => newBrain(false);
+const playBtn = document.getElementById("play");
+playBtn.onclick = () => { playing = !playing; playBtn.textContent = playing ? "Pause" : "Play"; };
+
+// arena: click or tap moves the food
+const arena = document.getElementById("arena");
+const toWorld = (cx, cy) => { const r = arena.getBoundingClientRect();
+  return [((cx - r.left) / r.width * 2 - 1) * VIEW, (1 - (cy - r.top) / r.height * 2) * VIEW]; };
+arena.addEventListener("pointerdown", (e) => { field.peak = toWorld(e.clientX, e.clientY); drawField(); });
+
+const fieldImg = document.createElement("canvas"); fieldImg.width = fieldImg.height = 120;
+function drawField() {
+  const c = fieldImg.getContext("2d"), im = c.createImageData(120, 120);
+  for (let j = 0; j < 120; j++) for (let i = 0; i < 120; i++) {
+    const x = (i + 0.5) / 120 * 2 * VIEW - VIEW, y = VIEW - (j + 0.5) / 120 * 2 * VIEW;
+    const v = field.conc(x, y), k = (j * 120 + i) * 4;
+    im.data[k] = 235 - 200 * v; im.data[k + 1] = 245 - 110 * v; im.data[k + 2] = 235 - 180 * v; im.data[k + 3] = 255; }
+  c.putImageData(im, 0, 0);
+}
+
+function drawWorm(ctx, pts, tx, width) {
+  ctx.lineCap = ctx.lineJoin = "round"; ctx.strokeStyle = css("--worm"); ctx.lineWidth = width;
+  ctx.beginPath(); pts.forEach((p, i) => { const [x, y] = tx(p); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.stroke();
+  const [hx, hy] = tx(pts[0]); ctx.fillStyle = css("--ink"); ctx.beginPath(); ctx.arc(hx, hy, width * 0.55, 0, 7); ctx.fill();
+}
+
+function drawArena() {
+  const ctx = arena.getContext("2d"), W = arena.width;
+  const tx = ([x, y]) => [(x + VIEW) / (2 * VIEW) * W, (VIEW - y) / (2 * VIEW) * W];
+  ctx.imageSmoothingEnabled = true; ctx.drawImage(fieldImg, 0, 0, W, W);
+  const fp = tx(field.peak); ctx.fillStyle = css("--accent"); ctx.beginPath(); ctx.arc(fp[0], fp[1], 7, 0, 7); ctx.fill();
+  ctx.strokeStyle = css("--trail"); ctx.globalAlpha = 0.7; ctx.lineWidth = 1.6; ctx.beginPath();
+  trail.forEach((p, i) => { const [x, y] = tx(p); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.stroke(); ctx.globalAlpha = 1;
+  const pts = worm.body.nodes(); drawWorm(ctx, pts, tx, 3);
+  const c = worm.body.centroid();
+  if (Math.abs(c[0]) > VIEW || Math.abs(c[1]) > VIEW) {
+    ctx.fillStyle = css("--ink"); ctx.font = "14px system-ui";
+    ctx.fillText("The worm has left the view: press New start", 12, W - 14); }
+  // close-up box in the top-right corner, or bottom-left while the worm is under it
+  const Z = W * 0.34, under = tx(c)[0] > W - Z - 30 && tx(c)[1] < Z + 30;
+  const zx = under ? 10 : W - Z - 10, zy = under ? W - Z - 10 : 10, span = 1.6;
+  ctx.fillStyle = css("--card"); ctx.strokeStyle = css("--line"); ctx.lineWidth = 1; ctx.fillRect(zx, zy, Z, Z); ctx.strokeRect(zx, zy, Z, Z);
+  const tz = ([x, y]) => [zx + ((x - c[0]) / span + 0.5) * Z, zy + ((c[1] - y) / span + 0.5) * Z];
+  ctx.save(); ctx.beginPath(); ctx.rect(zx, zy, Z, Z); ctx.clip(); drawWorm(ctx, pts, tz, 9); ctx.restore();
+  ctx.fillStyle = css("--muted"); ctx.font = "12px system-ui"; ctx.fillText("close-up (1.6 mm)", zx + 8, zy + Z - 8);
+}
+
+const color = (v) => { const t = Math.max(-1, Math.min(1, v));
+  return t >= 0 ? `rgb(${229 - 9 * t},${231 - 193 * t},${235 - 197 * t})` : `rgb(${229 + 192 * t},${231 + 132 * t},235)`; };
+function release() { const b = worm.brain, m = worm.model;
+  return Array.from(b.v, (v, i) => b.act(m.gain[i] * v) * b.alive[i]); }
+
+function drawNeurons(rel) {
+  const cv = document.getElementById("neurons"), ctx = cv.getContext("2d"), W = cv.width; ctx.clearRect(0, 0, W, cv.height);
+  const m = worm.model, cols = 24, size = Math.floor((W - 90) / cols); let y = 4;
+  for (const g of ROLE_ORDER) {
+    const idx = order.filter((i) => m.roles[i] === g); if (!idx.length) continue;
+    ctx.fillStyle = css("--muted"); ctx.font = "12px system-ui"; ctx.fillText(`${g} (${idx.length})`, 0, y + 12);
+    idx.forEach((n, k) => { ctx.fillStyle = color(rel[n]);
+      ctx.fillRect(90 + (k % cols) * size, y + Math.floor(k / cols) * size, size - 1, size - 1); });
+    y += Math.ceil(idx.length / cols) * size + 8; }
+}
+
+function drawTraces() {
+  const cv = document.getElementById("traces"), ctx = cv.getContext("2d"), W = cv.width, H = cv.height;
+  const rowH = H / KEY.length; ctx.clearRect(0, 0, W, H); ctx.font = "11px system-ui";
+  KEY.forEach((name, r) => { const y0 = r * rowH + rowH / 2;
+    ctx.strokeStyle = css("--line"); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(60, y0); ctx.lineTo(W, y0); ctx.stroke();
+    ctx.fillStyle = css("--muted"); ctx.fillText(name, 0, y0 + 4);
+    if (hist.length < 2) return;
+    let lo = Infinity, hi = -Infinity; for (const h of hist) { lo = Math.min(lo, h[r]); hi = Math.max(hi, h[r]); }
+    const mid = (lo + hi) / 2, half = Math.max((hi - lo) / 2, 0.05);
+    ctx.strokeStyle = css("--worm"); ctx.lineWidth = 1.4; ctx.beginPath();
+    hist.forEach((h, k) => { const x = 60 + (k + 200 - hist.length) / 199 * (W - 62), y = y0 - (h[r] - mid) / half * rowH * 0.42;
+      k ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.stroke(); });
+}
+
+function tick(now) {
+  if (playing) {
+    acc += Math.min(0.1, (now - last) / 1000) * +document.getElementById("speed").value;
+    while (acc >= DT) { acc -= DT; worm.step(); sampleAcc += DT;
+      if (sampleAcc >= 0.1) { sampleAcc -= 0.1; const rel = release();
+        hist.push(keyIdx.map((i) => rel[i])); if (hist.length > 200) hist.shift();
+        trail.push(worm.body.centroid()); if (trail.length > 3000) trail.shift(); } } }
+  last = now;
+  const rel = release(); drawArena(); drawNeurons(rel); drawTraces();
+  const c = worm.body.centroid(), d = Math.hypot(c[0] - field.peak[0], c[1] - field.peak[1]);
+  document.getElementById("stat").textContent = `t = ${(worm.k * DT).toFixed(1)} s · ` +
+    `${d.toFixed(2)} mm from food · salt at the nose ${field.conc(worm.body.head[0], worm.body.head[1]).toFixed(3)}`;
+  requestAnimationFrame(tick);
+}
+drawField(); newBrain(false); mark(); requestAnimationFrame(tick);
+</script>
+</body>
+</html>

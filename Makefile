@@ -1,4 +1,4 @@
-.PHONY: test lint stats oscillator report
+.PHONY: test lint stats oscillator report web
 
 test:
 	uv run pytest -q
@@ -17,3 +17,7 @@ oscillator:
 report:
 	uv run python scripts/report.py --results reports/comparison
 	uv run python scripts/chemotaxis_figure.py --results reports/comparison
+
+# interactive page: web/dist/index.html (live simulation of the best trained brains)
+web:
+	uv run python scripts/build_web.py
