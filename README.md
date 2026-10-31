@@ -10,9 +10,10 @@ connectome as a fixed graph inside a body controller, to the 302-neuron worm.
 Unlike FlyGM it trains with evolution strategies rather than deep RL, and it runs
 on a laptop CPU.
 
-**Status: milestone 5 of 8.** The real connectome, with only its neuron parameters
-trained, learns to crawl and to climb a salt gradient to food, using its salt
-sensors. The comparison with rewired and random wiring (milestone 6) is next.
+**Status: milestone 6 of 8.** The real connectome, with only its neuron parameters
+trained, learns to crawl and to climb a salt gradient to food using its salt sensors.
+**In the pre-registered comparison it did not learn better than rewired or random
+wiring;** random wiring did best (not significantly). Lesion study next.
 
 ## Plan
 
@@ -21,7 +22,7 @@ sensors. The comparison with rewired and random wiring (milestone 6) is next.
 3. ~~2D worm body (resistive force theory) and arena, driven by a hand-coded oscillator~~
 4. ~~Graded leaky-integrator brain on the connectome, wired to body and sensors; stability tests~~
 5. ~~CMA-ES training on the real connectome until the worm reaches the food~~
-6. Control conditions, multi-seed experiments, `make report`
+6. ~~Control conditions, multi-seed experiments, `make report`~~
 7. Lesion study compared with published ablations (Iino & Yoshida 2009; Gray et al. 2005)
 8. In-browser demo on GitHub Pages
 
@@ -175,6 +176,40 @@ Two stages for every graph: learn to crawl, then learn chemotaxis
 - Crawling with the new model is also more realistic: 0.36–0.72 Hz undulation.
 - Training cost: about 70 minutes per run on one CPU core (6 min crawling, 66 min
   chemotaxis), four runs in parallel on a 4-core machine.
+
+## Main result: real vs rewired vs random wiring (milestone 6)
+
+Pre-registered in [ANALYSIS_PLAN.md](ANALYSIS_PLAN.md) before any comparison run;
+full report in [`reports/comparison/RESULTS.md`](reports/comparison/RESULTS.md)
+(`make report`). 3 graphs x 4 seeds x 2 glutamate settings = 24 runs, identical
+parameters (425), training and budget; outcome = mean test reward over 32 held-out
+starts.
+
+| graph | mean test reward | runs reaching food | real − graph (95% CI) | Holm p |
+|---|---|---|---|---|
+| real | +0.131 | 2/8 | — | — |
+| rewired | +0.165 | 2/8 | −0.034 [−0.172, +0.113] | 0.68 |
+| random | +0.255 | 5/8 | −0.123 [−0.247, +0.012] | 0.25 |
+
+- **The real wiring did not outperform either control.** No difference is
+  significant. Numerically the random graph is highest in the training arena and in
+  all three unseen arenas; the real graph is lowest in three of the four (in the
+  linear gradient it edges the rewired graph, +0.10 vs +0.08).
+- Outcomes are close to all-or-nothing per run: a run either finds a steering
+  solution (test reward about +0.3) or does not (about 0). Real: 4/8 runs climbed;
+  rewired 5/8; random 7/8.
+- Every run that clearly climbed (16 runs, test reward above +0.1), in every graph, uses
+  its salt sensors: silencing ASEL and ASER drops climbing to chance
+  ([`sensor_lesion.md`](reports/comparison/sensor_lesion.md)).
+- What this does and does not show: with 8 runs per graph only large differences are
+  detectable, so this is "no detectable advantage", not proof that wiring is
+  irrelevant. It is also a test of this model: graded point neurons with tied
+  parameters per class, transmitter-based signs, a 2D body and a short training
+  budget. The known confound runs against the real graph: in rewired and random
+  graphs nearly every sensory neuron connects directly to a motor neuron (88% in
+  the real graph), which may make them easier to train.
+
+![comparison](reports/comparison/comparison.png)
 
 ## Limitations (so far)
 
