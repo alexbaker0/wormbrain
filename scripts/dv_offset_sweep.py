@@ -3,9 +3,12 @@
 flat-field turning (deg/mm) and net progress for each offset. uv run python scripts/dv_offset_sweep.py
 """
 
-import json, numpy as np
+import json
+
+import numpy as np
+
 from wormbrain.brain import BrainController
-from wormbrain.env import run_episode, mean_curvature, progress_speed
+from wormbrain.env import mean_curvature, progress_speed, run_episode
 from wormbrain.export import build_brain
 from wormbrain.locomotion import FLAT
 
@@ -35,4 +38,8 @@ for folder, n in [
         f"{folder.split('/')[1]:12s} {n}: offset 0 -> {cur[i0]:.0f} deg/mm (progress {sp[i0]:.3f}); best offset {dv[ib]:+.2f} -> {cur[ib]:.1f} deg/mm (progress {sp[ib]:.3f})",
         flush=True,
     )
-    print("    curve:", " ".join(f"{d:+.2f}:{c:.0f}" for d, c in zip(dv, cur)), flush=True)
+    print(
+        "    curve:",
+        " ".join(f"{d:+.2f}:{c:.0f}" for d, c in zip(dv, cur, strict=False)),
+        flush=True,
+    )

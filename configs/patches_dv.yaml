@@ -1,0 +1,53 @@
+# Patch world v2 + dorsal/ventral muscle offset: identical to patches_long.yaml (same start
+# brains, world, generations) except the brain has one extra trained number, an offset
+# between back and belly muscles (README, reports/dv_offset). A fair A/B test of that
+# one change. Original header follows.
+# Patch world v2: wrap-around arena, 12-minute lives, slower eating. Reward = food eaten
+# minus energy; nothing about how to move. Fixes three flaws of patches.yaml found in
+# reports/patches/FINDINGS.md: 4-minute lives could not tell wide arcs from straight runs,
+# food was eaten in passing (stopping was worthless), and an open arena with food only in
+# the middle would reward staying near the middle. Hand-coded check (food minus energy,
+# 12 min): steering by smell 1.79, straight crawling 0.63, wide arc 0.32, tight circle 0.
+# Starts from the patch-world brains (reports/patches/runs).
+
+condition: real
+glutamate: excitatory
+seed: 0
+bounded: true
+activation: tanh
+muscle_dv: true
+
+env: [configs/env.yaml]
+env_overrides:
+  field: {type: patches, half_size: 25.0, n_patches: 24, sigma: 1.5, capacity: 1.0,
+          eat_radius: 1.0, eat_rate: 0.03, min_spacing: 6.0, periodic: true}
+  start: {half_size: 15.0, clearance: 4.0}
+  episode: {duration: 720.0, dt: 0.02}
+  reward: {type: eaten, energy_weight: 0.2}
+
+init_from: reports/patches/runs
+
+stage1:
+  generations: 100
+  popsize: 24
+  sigma0: 0.5
+
+stage2:
+  generations: 100
+  popsize: 24
+  sigma0: 0.2
+  n_starts: 4
+
+evaluation:
+  n_starts: 32
+  validation_seed: 500
+  test_seed: 1000
+  arenas:
+    patches: {env: [configs/env.yaml]}
+    gaussian:
+      env: [configs/env.yaml]
+      overrides:
+        field: {type: gaussian, peak: [0.0, 0.0], sigma: 4.0, amplitude: 1.0}
+        start: {distance: [4.0, 8.0]}
+        episode: {duration: 90.0, dt: 0.02}
+        reward: {type: concentration_gain, final_fraction: 1.0, energy_weight: 0.05}
