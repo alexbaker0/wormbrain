@@ -7,7 +7,9 @@
   "time_at_food": 0.0,
   "climbed": 0.5,
   "moving_food_reached": 0.0,
-  "flat_curvature_deg_mm": 3.1056111140827616
+  "flat_curvature_deg_mm": 3.1056111140827616,
+  "patch_food": 0.0,
+  "patch_power": 0.05853761967469042
  },
  {
   "scenario": "start: milestone-6 brains",
@@ -17,7 +19,9 @@
   "time_at_food": 0.20335386151797602,
   "climbed": 1.0,
   "moving_food_reached": 0.4375,
-  "flat_curvature_deg_mm": 18.611112781003918
+  "flat_curvature_deg_mm": 18.611112781003918,
+  "patch_food": 1.906249999999872,
+  "patch_power": 0.38718868007151636
  },
  {
   "scenario": "start: milestone-6 brains",
@@ -27,7 +31,9 @@
   "time_at_food": 0.25686584553928093,
   "climbed": 1.0,
   "moving_food_reached": 0.28125,
-  "flat_curvature_deg_mm": 497.72519774906834
+  "flat_curvature_deg_mm": 497.72519774906834,
+  "patch_food": 0.9999999999999911,
+  "patch_power": 0.36631488038295984
  },
  {
   "scenario": "start: milestone-6 brains",
@@ -37,7 +43,9 @@
   "time_at_food": 0.32822902796271636,
   "climbed": 1.0,
   "moving_food_reached": 0.6875,
-  "flat_curvature_deg_mm": 190.49898190608627
+  "flat_curvature_deg_mm": 190.49898190608627,
+  "patch_food": 1.6987687499999016,
+  "patch_power": 0.5394732207697078
  },
  {
   "scenario": "straightness penalty (fine-tune)",
@@ -47,7 +55,9 @@
   "time_at_food": 0.0,
   "climbed": 0.5,
   "moving_food_reached": 0.0,
-  "flat_curvature_deg_mm": 7.1597610189081955
+  "flat_curvature_deg_mm": 7.1597610189081955,
+  "patch_food": 0.0019500000000000051,
+  "patch_power": 0.257894869408525
  },
  {
   "scenario": "straightness penalty (fine-tune)",
@@ -57,7 +67,9 @@
   "time_at_food": 0.28274800266311584,
   "climbed": 1.0,
   "moving_food_reached": 0.9375,
-  "flat_curvature_deg_mm": 12.093729029595238
+  "flat_curvature_deg_mm": 12.093729029595238,
+  "patch_food": 2.0715874999998447,
+  "patch_power": 0.5214848342909721
  },
  {
   "scenario": "straightness penalty (fine-tune)",
@@ -67,7 +79,9 @@
   "time_at_food": 0.00295439414114514,
   "climbed": 0.1875,
   "moving_food_reached": 0.03125,
-  "flat_curvature_deg_mm": 10.15314032499388
+  "flat_curvature_deg_mm": 10.15314032499388,
+  "patch_food": 0.4057062499999905,
+  "patch_power": 0.06129185885291607
  },
  {
   "scenario": "straightness penalty (fine-tune)",
@@ -77,7 +91,9 @@
   "time_at_food": 0.029876830892143807,
   "climbed": 0.9375,
   "moving_food_reached": 0.25,
-  "flat_curvature_deg_mm": 4.9229791971836905
+  "flat_curvature_deg_mm": 4.9229791971836905,
+  "patch_food": 1.7595312499998994,
+  "patch_power": 0.413510958882365
  },
  {
   "scenario": "A. fast approach",
@@ -87,7 +103,9 @@
   "time_at_food": 0.009445739014647138,
   "climbed": 0.34375,
   "moving_food_reached": 0.0,
-  "flat_curvature_deg_mm": 23.812903924608943
+  "flat_curvature_deg_mm": 23.812903924608943,
+  "patch_food": 0.11567500000000126,
+  "patch_power": 0.7681364539314209
  },
  {
   "scenario": "A. fast approach",
@@ -97,7 +115,9 @@
   "time_at_food": 0.17276964047936086,
   "climbed": 1.0,
   "moving_food_reached": 0.90625,
-  "flat_curvature_deg_mm": 15.462850029353042
+  "flat_curvature_deg_mm": 15.462850029353042,
+  "patch_food": 2.50371249999979,
+  "patch_power": 0.532224203176955
  },
  {
   "scenario": "A. fast approach",
@@ -107,7 +127,9 @@
   "time_at_food": 0.637233688415446,
   "climbed": 1.0,
   "moving_food_reached": 0.875,
-  "flat_curvature_deg_mm": 163.31790709764917
+  "flat_curvature_deg_mm": 163.31790709764917,
+  "patch_food": 0.9062499999999911,
+  "patch_power": 0.5332760672324824
  },
  {
   "scenario": "A. fast approach",
@@ -117,7 +139,9 @@
   "time_at_food": 0.23127496671105194,
   "climbed": 1.0,
   "moving_food_reached": 0.75,
-  "flat_curvature_deg_mm": 166.06543782289828
+  "flat_curvature_deg_mm": 166.06543782289828,
+  "patch_food": 2.2830749999998288,
+  "patch_power": 0.5901089996449538
  },
  {
   "scenario": "B. time eating",
@@ -127,7 +151,9 @@
   "time_at_food": 0.0,
   "climbed": 0.375,
   "moving_food_reached": 0.0,
-  "flat_curvature_deg_mm": 133.75374420515834
+  "flat_curvature_deg_mm": 133.75374420515834,
+  "patch_food": 0.0,
+  "patch_power": 0.1115853031171357
  },
  {
   "scenario": "B. time eating",
@@ -137,7 +163,9 @@
   "time_at_food": 0.30634154460719043,
   "climbed": 1.0,
   "moving_food_reached": 0.5625,
-  "flat_curvature_deg_mm": 5.461285350457153
+  "flat_curvature_deg_mm": 5.461285350457153,
+  "patch_food": 2.976868749999721,
+  "patch_power": 0.42681614368477555
  },
  {
   "scenario": "B. time eating",
@@ -147,7 +175,9 @@
   "time_at_food": 0.00923768308921438,
   "climbed": 0.3125,
   "moving_food_reached": 0.0,
-  "flat_curvature_deg_mm": 17.839625024297604
+  "flat_curvature_deg_mm": 17.839625024297604,
+  "patch_food": 0.4959374999999908,
+  "patch_power": 0.06306987367837931
  },
  {
   "scenario": "B. time eating",
@@ -157,7 +187,9 @@
   "time_at_food": 0.2612766311584554,
   "climbed": 1.0,
   "moving_food_reached": 0.3125,
-  "flat_curvature_deg_mm": 230.4342496803276
+  "flat_curvature_deg_mm": 230.4342496803276,
+  "patch_food": 1.2510687499999602,
+  "patch_power": 0.5228610344230147
  },
  {
   "scenario": "C. net energy",
@@ -167,7 +199,9 @@
   "time_at_food": 0.0,
   "climbed": 0.5,
   "moving_food_reached": 0.0,
-  "flat_curvature_deg_mm": 9.427992159837938
+  "flat_curvature_deg_mm": 9.427992159837938,
+  "patch_food": 0.0,
+  "patch_power": 0.17306212663470533
  },
  {
   "scenario": "C. net energy",
@@ -177,7 +211,9 @@
   "time_at_food": 0.023801597869507325,
   "climbed": 0.3125,
   "moving_food_reached": 0.0,
-  "flat_curvature_deg_mm": 22.97248951680361
+  "flat_curvature_deg_mm": 22.97248951680361,
+  "patch_food": 0.2618625000000017,
+  "patch_power": 0.15219369316686576
  },
  {
   "scenario": "C. net energy",
@@ -187,7 +223,9 @@
   "time_at_food": 0.00886318242343542,
   "climbed": 0.34375,
   "moving_food_reached": 0.0,
-  "flat_curvature_deg_mm": 17.996254548694292
+  "flat_curvature_deg_mm": 17.996254548694292,
+  "patch_food": 0.43780624999999196,
+  "patch_power": 0.062132230355892125
  },
  {
   "scenario": "C. net energy",
@@ -197,7 +235,9 @@
   "time_at_food": 0.0131491344873502,
   "climbed": 0.59375,
   "moving_food_reached": 0.125,
-  "flat_curvature_deg_mm": 24.615077562556216
+  "flat_curvature_deg_mm": 24.615077562556216,
+  "patch_food": 0.15716875,
+  "patch_power": 0.09632722133806274
  },
  {
   "scenario": "D. moving food",
@@ -207,7 +247,9 @@
   "time_at_food": 0.0,
   "climbed": 0.5,
   "moving_food_reached": 0.0,
-  "flat_curvature_deg_mm": 75.55995465897894
+  "flat_curvature_deg_mm": 75.55995465897894,
+  "patch_food": 0.0,
+  "patch_power": 0.35360638292860913
  },
  {
   "scenario": "D. moving food",
@@ -217,7 +259,9 @@
   "time_at_food": 0.2766727696404794,
   "climbed": 1.0,
   "moving_food_reached": 0.90625,
-  "flat_curvature_deg_mm": 12.855297725453052
+  "flat_curvature_deg_mm": 12.855297725453052,
+  "patch_food": 1.173862499999977,
+  "patch_power": 0.5363337415003966
  },
  {
   "scenario": "D. moving food",
@@ -227,7 +271,9 @@
   "time_at_food": 0.5186834221038615,
   "climbed": 1.0,
   "moving_food_reached": 0.78125,
-  "flat_curvature_deg_mm": 81.87958624196636
+  "flat_curvature_deg_mm": 81.87958624196636,
+  "patch_food": 1.5918874999999182,
+  "patch_power": 0.5750273434637829
  },
  {
   "scenario": "D. moving food",
@@ -237,7 +283,9 @@
   "time_at_food": 0.16607023968042608,
   "climbed": 1.0,
   "moving_food_reached": 0.5625,
-  "flat_curvature_deg_mm": 164.29130537376926
+  "flat_curvature_deg_mm": 164.29130537376926,
+  "patch_food": 2.103699999999851,
+  "patch_power": 0.5932855924483571
  },
  {
   "scenario": "E. far food, longer",
@@ -247,7 +295,9 @@
   "time_at_food": 0.0,
   "climbed": 0.375,
   "moving_food_reached": 0.03125,
-  "flat_curvature_deg_mm": 30.228175728987942
+  "flat_curvature_deg_mm": 30.228175728987942,
+  "patch_food": 0.0,
+  "patch_power": 0.49120856782326344
  },
  {
   "scenario": "E. far food, longer",
@@ -257,7 +307,9 @@
   "time_at_food": 0.30471870838881493,
   "climbed": 1.0,
   "moving_food_reached": 0.9375,
-  "flat_curvature_deg_mm": 1.9956358660167572
+  "flat_curvature_deg_mm": 1.9956358660167572,
+  "patch_food": 3.3781249999996694,
+  "patch_power": 0.5028022930416902
  },
  {
   "scenario": "E. far food, longer",
@@ -267,7 +319,9 @@
   "time_at_food": 0.2026048601864181,
   "climbed": 1.0,
   "moving_food_reached": 0.96875,
-  "flat_curvature_deg_mm": 61.27544912237374
+  "flat_curvature_deg_mm": 61.27544912237374,
+  "patch_food": 1.2187499999999605,
+  "patch_power": 0.6115521474055837
  },
  {
   "scenario": "E. far food, longer",
@@ -277,7 +331,117 @@
   "time_at_food": 0.34387483355525966,
   "climbed": 1.0,
   "moving_food_reached": 0.875,
-  "flat_curvature_deg_mm": 160.7271395033191
+  "flat_curvature_deg_mm": 160.7271395033191,
+  "patch_food": 1.681518749999905,
+  "patch_power": 0.5867110350862208
+ },
+ {
+  "scenario": "F. patch world, from scratch",
+  "run": "real_glu-excitatory_seed0",
+  "reached": 0.0,
+  "median_time_to_food_s": Infinity,
+  "time_at_food": 0.0,
+  "climbed": 0.625,
+  "moving_food_reached": 0.0,
+  "flat_curvature_deg_mm": 52.08333333333333,
+  "patch_food": 0.0,
+  "patch_power": 4.718275538280195e-28
+ },
+ {
+  "scenario": "F. patch world, from scratch",
+  "run": "real_glu-excitatory_seed1",
+  "reached": 0.0625,
+  "median_time_to_food_s": Infinity,
+  "time_at_food": 0.0010402796271637817,
+  "climbed": 0.3125,
+  "moving_food_reached": 0.03125,
+  "flat_curvature_deg_mm": 9.5784718828757,
+  "patch_food": 1.5998187499999592,
+  "patch_power": 0.4114340298370232
+ },
+ {
+  "scenario": "F. patch world, from scratch",
+  "run": "real_glu-inhibitory_seed0",
+  "reached": 0.09375,
+  "median_time_to_food_s": Infinity,
+  "time_at_food": 0.005034953395472703,
+  "climbed": 0.15625,
+  "moving_food_reached": 0.03125,
+  "flat_curvature_deg_mm": 6.3909924963281926,
+  "patch_food": 0.5452312499999994,
+  "patch_power": 0.17876299642040028
+ },
+ {
+  "scenario": "F. patch world, from scratch",
+  "run": "real_glu-inhibitory_seed1",
+  "reached": 0.0625,
+  "median_time_to_food_s": Infinity,
+  "time_at_food": 0.002996005326231691,
+  "climbed": 0.09375,
+  "moving_food_reached": 0.0,
+  "flat_curvature_deg_mm": 6.499972758382613,
+  "patch_food": 0.5107999999999968,
+  "patch_power": 0.3547269323436803
+ },
+ {
+  "scenario": "G. patch world v2 (12 min, wrap-around)",
+  "run": "real_glu-excitatory_seed0",
+  "reached": 0.0,
+  "median_time_to_food_s": Infinity,
+  "time_at_food": 0.0,
+  "climbed": 0.625,
+  "moving_food_reached": 0.0,
+  "flat_curvature_deg_mm": 65.10416666666666,
+  "patch_food": 0.0,
+  "patch_power": 3.320497808773521e-28
+ },
+ {
+  "scenario": "G. patch world v2 (12 min, wrap-around)",
+  "run": "real_glu-excitatory_seed1",
+  "reached": 0.125,
+  "median_time_to_food_s": Infinity,
+  "time_at_food": 0.014439081225033288,
+  "climbed": 0.34375,
+  "moving_food_reached": 0.0,
+  "flat_curvature_deg_mm": 7.7406455254716455,
+  "patch_food": 2.809999999999852,
+  "patch_power": 0.3027123953415095
+ },
+ {
+  "scenario": "G. patch world v2 (12 min, wrap-around)",
+  "run": "real_glu-inhibitory_seed0",
+  "reached": 0.09375,
+  "median_time_to_food_s": Infinity,
+  "time_at_food": 0.004077896138482024,
+  "climbed": 0.15625,
+  "moving_food_reached": 0.03125,
+  "flat_curvature_deg_mm": 5.299876256924654,
+  "patch_food": 0.6745312500000021,
+  "patch_power": 0.17965753052955433
+ },
+ {
+  "scenario": "G. patch world v2 (12 min, wrap-around)",
+  "run": "real_glu-inhibitory_seed1",
+  "reached": 0.0625,
+  "median_time_to_food_s": Infinity,
+  "time_at_food": 0.010985352862849533,
+  "climbed": 0.40625,
+  "moving_food_reached": 0.03125,
+  "flat_curvature_deg_mm": 119.86166498947156,
+  "patch_food": 1.8442187499998879,
+  "patch_power": 0.42051077133585635
+ },
+ {
+  "scenario": "hand-coded forager",
+  "run": "",
+  "reached": 0.0,
+  "median_time_to_food_s": Infinity,
+  "time_at_food": 0.0,
+  "climbed": 1.0,
+  "moving_food_reached": 0.03125,
+  "flat_curvature_deg_mm": 0.0,
+  "patch_food": 1.5892749999999176,
+  "patch_power": 0.7610428483274136
  },
  {
   "scenario": "hand-coded steering",
@@ -287,7 +451,9 @@
   "time_at_food": 0.023759986684420774,
   "climbed": 1.0,
   "moving_food_reached": 0.09375,
-  "flat_curvature_deg_mm": 0.1278216387770778
+  "flat_curvature_deg_mm": 0.1278216387770778,
+  "patch_food": 1.5892749999999176,
+  "patch_power": 0.7559625455386064
  },
  {
   "scenario": "blind crawling",
@@ -297,6 +463,8 @@
   "time_at_food": 0.003911451398135819,
   "climbed": 0.09375,
   "moving_food_reached": 0.03125,
-  "flat_curvature_deg_mm": 0.1278216387770778
+  "flat_curvature_deg_mm": 0.1278216387770778,
+  "patch_food": 0.6033937500000062,
+  "patch_power": 0.05515636880123322
  }
 ]
