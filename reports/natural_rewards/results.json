@@ -1,0 +1,302 @@
+[
+ {
+  "scenario": "start: milestone-6 brains",
+  "run": "real_glu-excitatory_seed0",
+  "reached": 0.0,
+  "median_time_to_food_s": Infinity,
+  "time_at_food": 0.0,
+  "climbed": 0.5,
+  "moving_food_reached": 0.0,
+  "flat_curvature_deg_mm": 3.1056111140827616
+ },
+ {
+  "scenario": "start: milestone-6 brains",
+  "run": "real_glu-excitatory_seed1",
+  "reached": 0.96875,
+  "median_time_to_food_s": 98.10000000000001,
+  "time_at_food": 0.20335386151797602,
+  "climbed": 1.0,
+  "moving_food_reached": 0.4375,
+  "flat_curvature_deg_mm": 18.611112781003918
+ },
+ {
+  "scenario": "start: milestone-6 brains",
+  "run": "real_glu-inhibitory_seed0",
+  "reached": 1.0,
+  "median_time_to_food_s": 100.7,
+  "time_at_food": 0.25686584553928093,
+  "climbed": 1.0,
+  "moving_food_reached": 0.28125,
+  "flat_curvature_deg_mm": 497.72519774906834
+ },
+ {
+  "scenario": "start: milestone-6 brains",
+  "run": "real_glu-inhibitory_seed1",
+  "reached": 1.0,
+  "median_time_to_food_s": 70.9,
+  "time_at_food": 0.32822902796271636,
+  "climbed": 1.0,
+  "moving_food_reached": 0.6875,
+  "flat_curvature_deg_mm": 190.49898190608627
+ },
+ {
+  "scenario": "straightness penalty (fine-tune)",
+  "run": "real_glu-excitatory_seed0",
+  "reached": 0.0,
+  "median_time_to_food_s": Infinity,
+  "time_at_food": 0.0,
+  "climbed": 0.5,
+  "moving_food_reached": 0.0,
+  "flat_curvature_deg_mm": 7.1597610189081955
+ },
+ {
+  "scenario": "straightness penalty (fine-tune)",
+  "run": "real_glu-excitatory_seed1",
+  "reached": 1.0,
+  "median_time_to_food_s": 47.300000000000004,
+  "time_at_food": 0.28274800266311584,
+  "climbed": 1.0,
+  "moving_food_reached": 0.9375,
+  "flat_curvature_deg_mm": 12.093729029595238
+ },
+ {
+  "scenario": "straightness penalty (fine-tune)",
+  "run": "real_glu-inhibitory_seed0",
+  "reached": 0.03125,
+  "median_time_to_food_s": Infinity,
+  "time_at_food": 0.00295439414114514,
+  "climbed": 0.1875,
+  "moving_food_reached": 0.03125,
+  "flat_curvature_deg_mm": 10.15314032499388
+ },
+ {
+  "scenario": "straightness penalty (fine-tune)",
+  "run": "real_glu-inhibitory_seed1",
+  "reached": 0.375,
+  "median_time_to_food_s": Infinity,
+  "time_at_food": 0.029876830892143807,
+  "climbed": 0.9375,
+  "moving_food_reached": 0.25,
+  "flat_curvature_deg_mm": 4.9229791971836905
+ },
+ {
+  "scenario": "A. fast approach",
+  "run": "real_glu-excitatory_seed0",
+  "reached": 0.03125,
+  "median_time_to_food_s": Infinity,
+  "time_at_food": 0.009445739014647138,
+  "climbed": 0.34375,
+  "moving_food_reached": 0.0,
+  "flat_curvature_deg_mm": 23.812903924608943
+ },
+ {
+  "scenario": "A. fast approach",
+  "run": "real_glu-excitatory_seed1",
+  "reached": 1.0,
+  "median_time_to_food_s": 58.0,
+  "time_at_food": 0.17276964047936086,
+  "climbed": 1.0,
+  "moving_food_reached": 0.90625,
+  "flat_curvature_deg_mm": 15.462850029353042
+ },
+ {
+  "scenario": "A. fast approach",
+  "run": "real_glu-inhibitory_seed0",
+  "reached": 1.0,
+  "median_time_to_food_s": 43.6,
+  "time_at_food": 0.637233688415446,
+  "climbed": 1.0,
+  "moving_food_reached": 0.875,
+  "flat_curvature_deg_mm": 163.31790709764917
+ },
+ {
+  "scenario": "A. fast approach",
+  "run": "real_glu-inhibitory_seed1",
+  "reached": 1.0,
+  "median_time_to_food_s": 60.800000000000004,
+  "time_at_food": 0.23127496671105194,
+  "climbed": 1.0,
+  "moving_food_reached": 0.75,
+  "flat_curvature_deg_mm": 166.06543782289828
+ },
+ {
+  "scenario": "B. time eating",
+  "run": "real_glu-excitatory_seed0",
+  "reached": 0.0,
+  "median_time_to_food_s": Infinity,
+  "time_at_food": 0.0,
+  "climbed": 0.375,
+  "moving_food_reached": 0.0,
+  "flat_curvature_deg_mm": 133.75374420515834
+ },
+ {
+  "scenario": "B. time eating",
+  "run": "real_glu-excitatory_seed1",
+  "reached": 1.0,
+  "median_time_to_food_s": 54.7,
+  "time_at_food": 0.30634154460719043,
+  "climbed": 1.0,
+  "moving_food_reached": 0.5625,
+  "flat_curvature_deg_mm": 5.461285350457153
+ },
+ {
+  "scenario": "B. time eating",
+  "run": "real_glu-inhibitory_seed0",
+  "reached": 0.125,
+  "median_time_to_food_s": Infinity,
+  "time_at_food": 0.00923768308921438,
+  "climbed": 0.3125,
+  "moving_food_reached": 0.0,
+  "flat_curvature_deg_mm": 17.839625024297604
+ },
+ {
+  "scenario": "B. time eating",
+  "run": "real_glu-inhibitory_seed1",
+  "reached": 1.0,
+  "median_time_to_food_s": 91.5,
+  "time_at_food": 0.2612766311584554,
+  "climbed": 1.0,
+  "moving_food_reached": 0.3125,
+  "flat_curvature_deg_mm": 230.4342496803276
+ },
+ {
+  "scenario": "C. net energy",
+  "run": "real_glu-excitatory_seed0",
+  "reached": 0.0,
+  "median_time_to_food_s": Infinity,
+  "time_at_food": 0.0,
+  "climbed": 0.5,
+  "moving_food_reached": 0.0,
+  "flat_curvature_deg_mm": 9.427992159837938
+ },
+ {
+  "scenario": "C. net energy",
+  "run": "real_glu-excitatory_seed1",
+  "reached": 0.28125,
+  "median_time_to_food_s": Infinity,
+  "time_at_food": 0.023801597869507325,
+  "climbed": 0.3125,
+  "moving_food_reached": 0.0,
+  "flat_curvature_deg_mm": 22.97248951680361
+ },
+ {
+  "scenario": "C. net energy",
+  "run": "real_glu-inhibitory_seed0",
+  "reached": 0.15625,
+  "median_time_to_food_s": Infinity,
+  "time_at_food": 0.00886318242343542,
+  "climbed": 0.34375,
+  "moving_food_reached": 0.0,
+  "flat_curvature_deg_mm": 17.996254548694292
+ },
+ {
+  "scenario": "C. net energy",
+  "run": "real_glu-inhibitory_seed1",
+  "reached": 0.125,
+  "median_time_to_food_s": Infinity,
+  "time_at_food": 0.0131491344873502,
+  "climbed": 0.59375,
+  "moving_food_reached": 0.125,
+  "flat_curvature_deg_mm": 24.615077562556216
+ },
+ {
+  "scenario": "D. moving food",
+  "run": "real_glu-excitatory_seed0",
+  "reached": 0.0,
+  "median_time_to_food_s": Infinity,
+  "time_at_food": 0.0,
+  "climbed": 0.5,
+  "moving_food_reached": 0.0,
+  "flat_curvature_deg_mm": 75.55995465897894
+ },
+ {
+  "scenario": "D. moving food",
+  "run": "real_glu-excitatory_seed1",
+  "reached": 1.0,
+  "median_time_to_food_s": 49.800000000000004,
+  "time_at_food": 0.2766727696404794,
+  "climbed": 1.0,
+  "moving_food_reached": 0.90625,
+  "flat_curvature_deg_mm": 12.855297725453052
+ },
+ {
+  "scenario": "D. moving food",
+  "run": "real_glu-inhibitory_seed0",
+  "reached": 1.0,
+  "median_time_to_food_s": 54.8,
+  "time_at_food": 0.5186834221038615,
+  "climbed": 1.0,
+  "moving_food_reached": 0.78125,
+  "flat_curvature_deg_mm": 81.87958624196636
+ },
+ {
+  "scenario": "D. moving food",
+  "run": "real_glu-inhibitory_seed1",
+  "reached": 1.0,
+  "median_time_to_food_s": 63.300000000000004,
+  "time_at_food": 0.16607023968042608,
+  "climbed": 1.0,
+  "moving_food_reached": 0.5625,
+  "flat_curvature_deg_mm": 164.29130537376926
+ },
+ {
+  "scenario": "E. far food, longer",
+  "run": "real_glu-excitatory_seed0",
+  "reached": 0.0,
+  "median_time_to_food_s": Infinity,
+  "time_at_food": 0.0,
+  "climbed": 0.375,
+  "moving_food_reached": 0.03125,
+  "flat_curvature_deg_mm": 30.228175728987942
+ },
+ {
+  "scenario": "E. far food, longer",
+  "run": "real_glu-excitatory_seed1",
+  "reached": 1.0,
+  "median_time_to_food_s": 46.7,
+  "time_at_food": 0.30471870838881493,
+  "climbed": 1.0,
+  "moving_food_reached": 0.9375,
+  "flat_curvature_deg_mm": 1.9956358660167572
+ },
+ {
+  "scenario": "E. far food, longer",
+  "run": "real_glu-inhibitory_seed0",
+  "reached": 1.0,
+  "median_time_to_food_s": 57.5,
+  "time_at_food": 0.2026048601864181,
+  "climbed": 1.0,
+  "moving_food_reached": 0.96875,
+  "flat_curvature_deg_mm": 61.27544912237374
+ },
+ {
+  "scenario": "E. far food, longer",
+  "run": "real_glu-inhibitory_seed1",
+  "reached": 1.0,
+  "median_time_to_food_s": 46.800000000000004,
+  "time_at_food": 0.34387483355525966,
+  "climbed": 1.0,
+  "moving_food_reached": 0.875,
+  "flat_curvature_deg_mm": 160.7271395033191
+ },
+ {
+  "scenario": "hand-coded steering",
+  "run": "",
+  "reached": 0.03125,
+  "median_time_to_food_s": Infinity,
+  "time_at_food": 0.023759986684420774,
+  "climbed": 1.0,
+  "moving_food_reached": 0.09375,
+  "flat_curvature_deg_mm": 0.1278216387770778
+ },
+ {
+  "scenario": "blind crawling",
+  "run": "",
+  "reached": 0.0625,
+  "median_time_to_food_s": Infinity,
+  "time_at_food": 0.003911451398135819,
+  "climbed": 0.09375,
+  "moving_food_reached": 0.03125,
+  "flat_curvature_deg_mm": 0.1278216387770778
+ }
+]
