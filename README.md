@@ -310,6 +310,41 @@ within a few mm and eaten up in about 10 s, in a 50 x 50 mm arena; reward = food
 crawling scores +0.35 while circling scores −0.01 (it finds nothing)
 ([`reports/reward_check_patches.md`](reports/reward_check_patches.md)).
 
+### Patch world results
+
+- **First version** (4-minute lives; [`reports/patches/FINDINGS.md`](reports/patches/FINDINGS.md)):
+  tight circling disappeared (from 177°/mm to 6–10°/mm), but the worms swung round in wide
+  arcs and never stopped to eat. Three flaws in the world caused this:
+  - A 4-minute life is shorter than one lap of a wide arc, so a wide arc scored the same as
+    a straight line.
+  - Patches were eaten in passing, so stopping earned nothing.
+  - The arena had no walls and the food was all in the middle, so with longer lives an arc
+    would beat a straight line by keeping the worm near the food.
+
+  The underlying source of turning is that back and belly muscles are driven by different
+  neuron classes with independent parameters, so any mismatch between the two sides is a
+  constant bend.
+- **Second version** ([`configs/patches_long.yaml`](configs/patches_long.yaml); edges wrap
+  around, 12-minute lives, a patch takes about 30 s to eat;
+  [`reports/patches_long/FINDINGS.md`](reports/patches_long/FINDINGS.md)):
+  - Before training, hand-coded movers score in the expected order on food minus energy:
+    steering by smell 1.79, straight 0.63, wide arc 0.32, tight circle 0.
+  - After training, the two best brains eat 2.75 and 1.98 patches in 12 minutes, against
+    1.89 for hand-coded steering. Their turning is two-way meandering (5–22% one-way), not
+    circling.
+  - They do not run straight between patches, and they barely slow down on food.
+  - One brain still swings round in wide arcs, and one never learned to crawl.
+- **Common tests** ([`reports/natural_rewards/REPORT.md`](reports/natural_rewards/REPORT.md)):
+  the best patch-world eater of all is a brain that was never trained there. It is the
+  straight-crawling steerer from the "far food" scenario: 2°/mm turning, 3.38 patches in
+  12 minutes, against 2.81 for the best patch-trained brain.
+  - So the expectation is right: in a world with sparse food, crawling straight while
+    steering by smell is what food minus energy rewards most.
+  - But evolution strategies starting from these brains don't reliably find it. They get
+    stuck in local optima (meandering, or wide arcs).
+  - The patch-trained brains also lost the ability to climb towards a single broad food
+    source.
+
 ## Limitations (so far)
 
 - Synapse signs are inferred from transmitter identity; glutamate's sign is a
