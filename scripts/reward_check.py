@@ -15,9 +15,9 @@ from pathlib import Path
 import numpy as np
 
 from wormbrain.chemotaxis import env_config, load_run_config
-from wormbrain.controllers import GradientSteering, TravelingWave
+from wormbrain.controllers import Forager, GradientSteering, TravelingWave
 from wormbrain.env import (
-    Field,
+    make_field,
     mean_curvature,
     mean_turning_rate,
     path_speed,
@@ -38,7 +38,7 @@ def main():
 
     cfg = load_run_config(args.config)
     env = env_config(cfg["env"], cfg["env_overrides"])
-    field = Field(env["field"])
+    field = make_field(env["field"])
     head, heading = start_positions(env["start"], field, args.starts, seed=2000)
     k = cfg["stage2"]["n_starts"]
     behaviours = {
@@ -48,6 +48,8 @@ def main():
         "slow wide circling": TravelingWave(frequency=0.2, bias=0.1),
         "hand-coded steering": GradientSteering(),
     }
+    if env["field"].get("type") == "patches":
+        behaviours["hand-coded forager (stops to eat)"] = Forager()
     st = cfg.get("straightness")
     rows, scores = [], {}
     for name, ctrl in behaviours.items():

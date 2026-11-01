@@ -27,6 +27,7 @@ from .controllers import GradientSteering, TravelingWave
 from .env import (
     Field,
     load_env_config,
+    make_field,
     mean_curvature,
     mean_turning_rate,
     path_speed,
@@ -132,7 +133,7 @@ def stage2(cfg: dict, x_start: np.ndarray, verbose: bool = False, log_path=None)
     brain, body, _ = setup(cfg["condition"], cfg["seed"], cfg["glutamate"], True,
                            cfg.get("bounded", True), cfg.get("activation", "tanh"))  # fmt: skip
     env = env_config(cfg["env"], cfg.get("env_overrides"))
-    field = Field(env["field"])
+    field = make_field(env["field"])
     s2 = cfg["stage2"]
     gen = {"k": 0}
 
@@ -174,7 +175,10 @@ def _metrics(ep, field, env) -> dict:
         "path_speed_mean": float(path_speed(ep).mean()),
         "climbed_fraction": float((gain > 0).mean()),
     }
-    if field.kind != "linear":
+    if field.kind == "patches":
+        out |= {"eaten_mean": float(ep.eaten[-1].mean()),
+                "found_food": float((ep.eaten[-1] > 0).mean())}  # fmt: skip
+    elif field.kind != "linear":
         d = np.linalg.norm(ep.centroid[-1] - field.center, axis=1)
         out |= {"final_distance_mean": float(d.mean()), "reached_1mm": float((d < 1.0).mean())}
     return out
@@ -190,7 +194,7 @@ def evaluate(cfg: dict, x) -> dict:
         env = env_config(
             spec["env"], copy.deepcopy(cfg.get("env_overrides")) | spec.get("overrides", {})
         )
-        field = Field(env["field"])
+        field = make_field(env["field"])
         head, heading = start_positions(env["start"], field, ev["n_starts"], ev["test_seed"])
         n = len(heading)
         controllers = {

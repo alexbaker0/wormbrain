@@ -1,0 +1,47 @@
+# Patch world: natural foraging without forcing any behaviour.
+# Scattered food patches that can be smelled only within a few mm and are eaten up
+# (about 10 s each): 24 patches in a 50 x 50 mm arena, 4-minute trials. Reward = food eaten - energy used; no rule
+# that the worm must keep moving (it may stop to eat). Circling finds no food, straight
+# runs between patches do. Training starts from scratch: the milestone-6 crawling stage
+# is reused, then 150 generations in the patch world.
+
+condition: real
+glutamate: excitatory
+seed: 0
+bounded: true
+activation: tanh
+
+env: [configs/env.yaml]
+env_overrides:
+  field: {type: patches, half_size: 25.0, n_patches: 24, sigma: 1.5, capacity: 1.0,
+          eat_radius: 1.0, eat_rate: 0.1, min_spacing: 6.0}
+  start: {half_size: 15.0, clearance: 4.0}   # start in the middle, at least 4 mm from food
+  episode: {duration: 240.0, dt: 0.02}
+  reward: {type: eaten, energy_weight: 0.2}  # units eaten (1 per patch) - 0.2 x mean power
+
+stage1_from: runs/chemotaxis   # identical crawling stage, reused from milestone 6
+
+stage1:
+  generations: 100
+  popsize: 24
+  sigma0: 0.5
+
+stage2:
+  generations: 150
+  popsize: 24
+  sigma0: 0.3
+  n_starts: 6            # arenas per candidate per generation (new layout each generation)
+
+evaluation:
+  n_starts: 32
+  validation_seed: 500
+  test_seed: 1000
+  arenas:
+    patches: {env: [configs/env.yaml]}   # the patch world, test layout
+    gaussian:                            # the earlier single-food task, for comparison
+      env: [configs/env.yaml]
+      overrides:
+        field: {type: gaussian, peak: [0.0, 0.0], sigma: 4.0, amplitude: 1.0}
+        start: {distance: [4.0, 8.0]}
+        episode: {duration: 90.0, dt: 0.02}
+        reward: {type: concentration_gain, final_fraction: 1.0, energy_weight: 0.05}

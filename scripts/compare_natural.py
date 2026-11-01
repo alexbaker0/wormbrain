@@ -29,8 +29,15 @@ import numpy as np  # noqa: E402
 
 from wormbrain.brain import BrainController  # noqa: E402
 from wormbrain.chemotaxis import env_config, load_run_config  # noqa: E402
-from wormbrain.controllers import GradientSteering, TravelingWave  # noqa: E402
-from wormbrain.env import Field, make_body, mean_curvature, run_episode, start_positions  # noqa: E402
+from wormbrain.controllers import Forager, GradientSteering, TravelingWave  # noqa: E402
+from wormbrain.env import (  # noqa: E402
+    Field,
+    PatchField,
+    make_body,
+    mean_curvature,
+    run_episode,
+    start_positions,
+)
 from wormbrain.export import build_brain  # noqa: E402
 from wormbrain.locomotion import FLAT  # noqa: E402
 
@@ -44,6 +51,9 @@ SCENARIOS = [  # (label, results folder, config)
     ("C. net energy", "reports/natural_energy/runs", "configs/natural_energy.yaml"),
     ("D. moving food", "reports/natural_moving/runs", "configs/natural_moving.yaml"),
     ("E. far food, longer", "reports/natural_far/runs", "configs/natural_far.yaml"),
+    ("F. patch world, from scratch", "reports/patches/runs", "configs/patches.yaml"),
+    ("G. patch world, fine-tuned", "reports/patches_finetune/runs",
+     "configs/patches_finetune.yaml"),
 ]  # fmt: skip
 RUN_NAMES = [f"real_glu-{g}_seed{s}" for g in ("excitatory", "inhibitory") for s in (0, 1)]
 DT, DURATION, N = 0.02, 150.0, 32
@@ -66,6 +76,10 @@ def tests(make_controller, body):
                       body=body, food_events=[(60.0, new)])  # fmt: skip
     after = ep2.t > 60.0
     d2 = np.linalg.norm(ep2.head[after] - np.array(new), axis=-1)
+    patches = PatchField({"half_size": 25.0, "n_patches": 24, "sigma": 1.5, "eat_radius": 1.0,
+                          "eat_rate": 0.1, "min_spacing": 6.0})  # fmt: skip
+    ph, phd = start_positions({"half_size": 15.0, "clearance": 4.0}, patches, N, seed=9999)
+    ep3 = run_episode(make_controller(N), patches, ph, phd, duration=240.0, dt=DT, body=body)
     flat = run_episode(make_controller(8), FLAT, np.zeros((8, 2)),
                        np.random.default_rng(4244).uniform(0, 2 * np.pi, 8), duration=120.0,
                        dt=DT, body=body)  # fmt: skip
@@ -76,6 +90,8 @@ def tests(make_controller, body):
         "climbed": float(climbed.mean()),
         "moving_food_reached": float((d2 < 1.0).any(0).mean()),
         "flat_curvature_deg_mm": float(mean_curvature(flat).mean()),
+        "patch_food": float(ep3.eaten[-1].mean()),
+        "patch_power": float(ep3.power[1:].mean()),
         "_paths": ep.centroid[:, :8].tolist(),
     }
 
@@ -97,7 +113,8 @@ def main():
             paths[(label, name)] = m.pop("_paths")
             rows.append({"scenario": label, "run": name} | m)
             print(label, name, {k: round(v, 3) for k, v in m.items()})
-    for label, factory in [("hand-coded steering", lambda n: GradientSteering()),
+    for label, factory in [("hand-coded forager", lambda n: Forager()),
+                           ("hand-coded steering", lambda n: GradientSteering()),
                            ("blind crawling", lambda n: TravelingWave())]:  # fmt: skip
         m = tests(factory, body)
         paths[(label, "")] = m.pop("_paths")
@@ -118,26 +135,29 @@ def main():
         "settings) for 100 generations.",
         "",
         "| scenario | run | reached food | median time to food | time at food "
-        "| climbed | moving food re-reached | flat-field turning (°/mm) |",
-        "|---|---|---|---|---|---|---|---|",
+        "| climbed | moving food re-reached | flat-field turning (°/mm) "
+        "| patch world: food eaten in 4 min |",
+        "|---|---|---|---|---|---|---|---|---|",
     ]
     for r in rows:
         lines.append(
             f"| {r['scenario']} | {r['run']} | {r['reached']:.0%} "
             f"| {fmt_time(r['median_time_to_food_s'])} | {r['time_at_food']:.0%} "
             f"| {r['climbed']:.0%} | {r['moving_food_reached']:.0%} "
-            f"| {r['flat_curvature_deg_mm']:.0f} |"
+            f"| {r['flat_curvature_deg_mm']:.0f} | {r['patch_food']:.2f} |"
         )
     lines += ["", "## Mean over the four runs of each scenario", "",
               "| scenario | reached food | time at food | moving food re-reached "
-              "| flat-field turning (°/mm) |", "|---|---|---|---|---|"]  # fmt: skip
+              "| flat-field turning (°/mm) | patch world: food eaten |",
+              "|---|---|---|---|---|---|"]  # fmt: skip
     for label in dict.fromkeys(r["scenario"] for r in rows):
         rs = [r for r in rows if r["scenario"] == label]
         lines.append(
             f"| {label} | {np.mean([r['reached'] for r in rs]):.0%} "
             f"| {np.mean([r['time_at_food'] for r in rs]):.0%} "
             f"| {np.mean([r['moving_food_reached'] for r in rs]):.0%} "
-            f"| {np.mean([r['flat_curvature_deg_mm'] for r in rs]):.0f} |"
+            f"| {np.mean([r['flat_curvature_deg_mm'] for r in rs]):.0f} "
+            f"| {np.mean([r['patch_food'] for r in rs]):.2f} |"
         )
     lines += ["", "![paths](paths.png)", ""]
     (OUT / "REPORT.md").write_text("\n".join(lines))

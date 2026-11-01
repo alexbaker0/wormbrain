@@ -131,3 +131,34 @@ def test_moving_food_and_food_time():
     np.testing.assert_allclose(f.center, [0, 0])  # field restored afterwards
     eaten = reward(ep, f, {"type": "food_time", "radius": 1.0})
     assert 0.45 < eaten[0] < 0.56  # at the food until it moved half way through
+
+
+def test_patch_world_eating_depletes_and_smell_fades():
+    from wormbrain.env import PatchField
+
+    f = PatchField({"n_patches": 4, "half_size": 10.0, "min_spacing": 5.0, "eat_rate": 0.1})
+    patch = f.xy[0].copy()
+    head = np.array([patch + [0.2, 0.0]])  # sitting on patch 0
+    still = TravelingWave(amplitude=0.0)
+    ep = run_episode(still, f, head, np.zeros(1), duration=20.0, dt=0.02)
+    assert ep.eaten[-1, 0] == pytest.approx(1.0, abs=1e-6)  # whole patch eaten in 10 s
+    assert ep.eaten[50, 0] == pytest.approx(1.0, abs=0.02)  # record every 0.2 s: 10 s in
+    assert ep.conc[-1, 0] < 0.05 * ep.conc[0, 0]  # its smell has gone
+    assert reward(ep, f, {"type": "eaten"})[0] == pytest.approx(1.0, abs=1e-6)
+    # a fresh episode restores the food
+    ep2 = run_episode(still, f, head, np.zeros(1), duration=2.0, dt=0.02)
+    assert ep2.conc[0, 0] == pytest.approx(ep.conc[0, 0])
+
+
+def test_patch_world_starts_and_layouts():
+    from wormbrain.env import PatchField
+
+    f = PatchField({"n_patches": 16, "half_size": 25.0})
+    head, heading = start_positions({"half_size": 15.0, "clearance": 4.0}, f, 50, seed=3)
+    layout = f.xy.copy()
+    assert np.abs(head).max() <= 15.0
+    assert np.min(np.linalg.norm(head[:, None] - layout[None], axis=-1)) >= 4.0
+    start_positions({"half_size": 15.0}, f, 5, seed=4)
+    assert not np.allclose(f.xy, layout)  # a new seed draws a new arena
+    start_positions({"half_size": 15.0}, f, 5, seed=3)
+    np.testing.assert_array_equal(f.xy, layout)  # and the same seed the same arena

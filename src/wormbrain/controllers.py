@@ -70,3 +70,24 @@ class GradientSteering:
         muscle[:, :2] = np.clip(muscle[:, :2] + shift, 0, 1)
         muscle[:, 2:] = np.clip(muscle[:, 2:] - shift, 0, 1)
         return muscle
+
+
+@dataclass
+class Forager:
+    """Hand-coded forager for patch worlds: crawl, turn while the smell weakens, and stop
+    (muscles relaxed) to eat while the smell is strong, i.e. on a patch. Once the patch
+    is eaten its smell fades and the worm moves on. A reference, not a model of biology.
+    """
+
+    turn_bias: float = 0.4
+    tau: float = 3.0
+    stop_conc: float = 0.85  # about 1 mm from a 1.5 mm-wide patch centre: inside eating range
+
+    def reset(self, n_worms: int) -> None:
+        self.steer = GradientSteering(turn_bias=self.turn_bias, tau=self.tau)
+        self.steer.reset(n_worms)
+
+    def step(self, obs: dict, dt: float) -> np.ndarray:
+        muscle = self.steer.step(obs, dt)
+        muscle[obs["conc"] > self.stop_conc] = 0.5  # dorsal = ventral: no bending, no motion
+        return muscle

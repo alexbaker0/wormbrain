@@ -284,6 +284,32 @@ becomes a fast straight steerer under almost all of them (best: 2°/mm, food rea
 from every start in a median 47 s, moved food re-found 94% of the time). Forcing
 straightness costs chemotaxis (35% reach food); a high energy cost destroys it (14%).
 
+### Why food and energy alone did not give straight crawling
+
+[`reports/why_circling.md`](reports/why_circling.md) (`scripts/why_circling.py`):
+
+1. **Circling costs no extra energy.** In the body model, power per second is the same
+   whether the worm turns or not (0.055 at every turning bias); circling only wastes
+   energy per mm of *net progress*, which matters only if the worm must go somewhere.
+2. **The food can be smelled from anywhere in the arena.** Salt neurons respond to
+   relative change, and the single broad food source gives a clear signal from 2 to
+   12 mm. This is the situation in which real worms turn a lot: near food they make
+   frequent turns that keep them in the area (area-restricted search, Hills et al.
+   2004), and only after about 15 minutes without food do they switch to long straight
+   runs (global search; Gray et al. 2005, López-Cruz et al. 2019). Search theory agrees:
+   straight runs pay when targets are sparse and detectable only up close (Viswanathan
+   et al. 1999).
+3. **The "keep moving" rule forced circling at the food:** a worm that may not stop can
+   stay on the food only by circling, so training built circling, and the circling
+   brains then circle everywhere (80–100% of their turning one-way at every distance).
+
+The natural fix is to change the world, not to add rules: a **patch world**
+([`configs/patches.yaml`](configs/patches.yaml)) of 24 small food patches, smelled only
+within a few mm and eaten up in about 10 s, in a 50 x 50 mm arena; reward = food eaten
+− 0.2 x energy; no movement rule (worms may stop to eat). There, blind straight
+crawling scores +0.35 while circling scores −0.01 (it finds nothing)
+([`reports/reward_check_patches.md`](reports/reward_check_patches.md)).
+
 ## Limitations (so far)
 
 - Synapse signs are inferred from transmitter identity; glutamate's sign is a

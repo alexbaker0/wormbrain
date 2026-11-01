@@ -65,3 +65,18 @@ def test_fine_tuning_starts_from_an_earlier_brain(tmp_path):
     s1 = json.loads((tmp_path / "tuned" / "stage1.json").read_text())
     assert s1["best_x"] == first["x"] and s1["reused_from"].endswith(f"{first['run']}.json")
     assert np.isfinite(tuned["test"]["gaussian"]["brain"]["reward_mean"])
+
+
+def test_patch_world_training_runs_end_to_end(tmp_path):
+    cfg = load_run_config("configs/patches.yaml", seed=99)
+    cfg.pop("stage1_from")
+    cfg["env_overrides"]["episode"] = {"duration": 4.0, "dt": 0.02}
+    cfg["stage1"] = {"generations": 1, "popsize": 4, "sigma0": 0.5}
+    cfg["stage2"] = {"generations": 2, "popsize": 4, "sigma0": 0.3, "n_starts": 2}
+    cfg["evaluation"]["n_starts"] = 3
+    for arena in cfg["evaluation"]["arenas"].values():
+        arena.setdefault("overrides", {})["episode"] = {"duration": 4.0, "dt": 0.02}
+    res = train_and_evaluate(cfg, tmp_path)
+    patch = res["test"]["patches"]["brain"]
+    assert {"eaten_mean", "found_food"} <= set(patch) and "reached_1mm" not in patch
+    assert "reached_1mm" in res["test"]["gaussian"]["brain"]

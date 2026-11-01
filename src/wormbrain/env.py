@@ -67,8 +67,86 @@ class Field:
         return -(g[..., None] * d / self.sigma[:, None] ** 2).sum(-2)
 
 
+class PatchField:
+    """Scattered food patches that can be smelled only nearby and are eaten up.
+
+    ``n_patches`` Gaussian odour sources (width ``sigma`` mm) are placed at random in a
+    square arena of half-width ``half_size`` mm, at least ``min_spacing`` apart. Each
+    worm has its own copy of the food: a patch holds ``capacity`` units, a worm whose
+    head is within ``eat_radius`` mm eats ``eat_rate`` units per second, and a patch's
+    smell fades in proportion to what is left. ``relayout(seed)`` draws a new arena.
+    """
+
+    kind = "patches"
+
+    def __init__(self, cfg: dict):
+        self.cfg = dict(cfg)
+        self.half = cfg.get("half_size", 25.0)
+        self.k = cfg.get("n_patches", 16)
+        self.sigma = cfg.get("sigma", 1.5)
+        self.capacity = cfg.get("capacity", 1.0)
+        self.eat_radius = cfg.get("eat_radius", 0.75)
+        self.eat_rate = cfg.get("eat_rate", 0.1)
+        self.min_spacing = cfg.get("min_spacing", 6.0)
+        self.relayout(cfg.get("seed", 0))
+        self.reset_worms(1)
+
+    def relayout(self, seed: int) -> None:
+        rng = np.random.default_rng(seed)
+        xy: list[np.ndarray] = []
+        while len(xy) < self.k:
+            p = rng.uniform(-self.half, self.half, 2)
+            if all(np.linalg.norm(p - q) >= self.min_spacing for q in xy):
+                xy.append(p)
+        self.xy = np.array(xy)
+
+    def reset_worms(self, n: int) -> None:
+        self.left = np.full((n, self.k), self.capacity)  # food left, per worm per patch
+
+    @property
+    def center(self) -> np.ndarray:
+        return np.zeros(2)
+
+    def move_peak(self, xy, index: int = 0) -> None:
+        self.xy[index] = xy
+
+    def conc(self, pos) -> np.ndarray:
+        pos = np.asarray(pos, dtype=float)
+        d2 = ((pos[..., None, :] - self.xy) ** 2).sum(-1)  # (..., K)
+        amp = self.left / self.capacity if pos.ndim == 2 and len(pos) == len(self.left) else 1.0
+        return (amp * np.exp(-d2 / (2 * self.sigma**2))).sum(-1)
+
+    def consume(self, head: np.ndarray, dt: float) -> np.ndarray:
+        """Worms at a patch eat from it; returns the amount each worm ate this step."""
+        near = ((head[:, None, :] - self.xy) ** 2).sum(-1) < self.eat_radius**2
+        bite = np.minimum(self.left, self.eat_rate * dt) * near
+        self.left -= bite
+        return bite.sum(1)
+
+    def starts(self, cfg: dict, n: int, seed: int):
+        """Random starts in the middle of the arena, away from every patch."""
+        rng = np.random.default_rng(seed + 1)
+        lim, clear = cfg.get("half_size", self.half * 0.6), cfg.get("clearance", 4.0)
+        head = []
+        while len(head) < n:
+            p = rng.uniform(-lim, lim, 2)
+            if np.min(np.linalg.norm(self.xy - p, axis=1)) >= clear:
+                head.append(p)
+        return np.array(head), rng.uniform(0, 2 * np.pi, n)
+
+
+def make_field(cfg: dict):
+    return PatchField(cfg) if cfg.get("type") == "patches" else Field(cfg)
+
+
 def start_positions(cfg: dict, field: Field, n: int, seed: int):
-    """Random head positions and headings for ``n`` worms; deterministic per seed."""
+    """Random head positions and headings for ``n`` worms; deterministic per seed.
+
+    In a patch world each seed also draws a new arena layout.
+    """
+    if getattr(field, "kind", None) == "patches":
+        field.relayout(seed)
+        return field.starts(cfg, n, seed)
     rng = np.random.default_rng(seed)
     center = np.asarray(cfg.get("center", field.center), dtype=float)
     lo, hi = cfg.get("distance", [4.0, 6.0])
@@ -88,6 +166,7 @@ class Episode:
     power: np.ndarray  # (T, P) mean dissipated power since the previous record
     nodes: np.ndarray | None  # (T, P, n + 1, 2) body shapes, if recorded
     food: np.ndarray | None = None  # (T, 2) position of the (first) food peak over time
+    eaten: np.ndarray | None = None  # (T, P) food eaten so far (patch worlds)
 
 
 def run_episode(
@@ -106,12 +185,15 @@ def run_episode(
     (food patches run out); the field is restored afterwards."""
     body = body or Body()
     events = sorted(food_events or [], key=lambda e: e[0])
-    initial_peak = field.center if field.kind != "linear" else None
+    initial_peak = field.center if field.kind not in ("linear", "patches") else None
+    if hasattr(field, "reset_worms"):
+        field.reset_worms(len(np.atleast_1d(heading)))
+    eaten = np.zeros(len(np.atleast_1d(heading)))
     state = body.reset(head, heading)
     n = len(state.theta0)
     controller.reset(n)
     steps = int(round(duration / dt))
-    rec = {k: [] for k in ("t", "head", "centroid", "conc", "power", "nodes", "food")}
+    rec = {k: [] for k in ("t", "head", "centroid", "conc", "power", "nodes", "food", "eaten")}
     power_acc = np.zeros(n)
 
     def record(k):
@@ -121,6 +203,7 @@ def run_episode(
         rec["conc"].append(field.conc(state.head))
         rec["power"].append(power_acc / record_every)
         rec["food"].append(field.center)
+        rec["eaten"].append(eaten.copy())
         if record_shapes:
             rec["nodes"].append(body.nodes(state))
 
@@ -130,6 +213,8 @@ def run_episode(
             field.move_peak(events.pop(0)[1])
         obs = {"t": (k - 1) * dt, "conc": field.conc(state.head), "kappa": state.kappa}
         power_acc += body.step(state, controller.step(obs, dt), dt)
+        if hasattr(field, "consume"):
+            eaten += field.consume(state.head, dt)
         if k % record_every == 0:
             record(k)
             power_acc[:] = 0
@@ -143,6 +228,7 @@ def run_episode(
         power=np.array(rec["power"]),
         nodes=np.array(rec["nodes"]) if record_shapes else None,
         food=np.array(rec["food"]),
+        eaten=np.array(rec["eaten"]),
     )
 
 
@@ -174,6 +260,9 @@ def reward(ep: Episode, field: Field, cfg: dict | None = None) -> np.ndarray:
         r = (dist < cfg.get("radius", 1.0)).mean(0)
     elif kind == "food_time":
         return reward(ep, field, cfg | {"type": "concentration_gain"})
+    elif kind == "eaten":
+        # patch world: food eaten (units; one patch holds ``capacity``)
+        r = ep.eaten[-1].copy()
     else:
         raise ValueError(f"unknown reward type {kind!r}")
     r = r - cfg.get("energy_weight", 0.0) * ep.power[1:].mean(0)
