@@ -28,7 +28,8 @@ def build_brain(run: dict, lesion=()) -> Brain:
     cfg["signs"]["glutamate"] = run["glutamate"]
     conn = make_condition(build_connectome(cfg), run["condition"], run["seed"])
     bc = BrainConfig(bounded=run.get("bounded", False), activation=run.get("activation", "sigmoid"),
-                     lesion=tuple(lesion), muscle_dv=run.get("muscle_dv", False))  # fmt: skip
+                     lesion=tuple(lesion), muscle_dv=run.get("muscle_dv", False),
+                     dv_tie=run.get("dv_tie", False))  # fmt: skip
     return Brain(conn, bc)
 
 
@@ -37,8 +38,6 @@ def export_model(run: dict, title: str, body_cfg: dict) -> dict:
     brain = build_brain(run)
     if brain.cfg.normalise != "per_neuron":
         raise NotImplementedError("web export supports per-neuron input scaling only")
-    if brain.cfg.muscle_dv:
-        raise NotImplementedError("web export does not support the dorsal/ventral offset yet")
     p = brain.decode(np.array(run["x"])[None])
     conn = brain.conn
     body = Body(BodyParams(**body_cfg))
@@ -80,6 +79,7 @@ def export_model(run: dict, title: str, body_cfg: dict) -> dict:
         "proprioGain": scalar("proprio_gain"),
         "muscleGain": scalar("muscle_gain"),
         "muscleBias": scalar("muscle_bias"),
+        "muscleDV": scalar("muscle_dv") if p["muscle_dv"] is not None else 0.0,
         "body": {
             "length": body.p.length,
             "nSegments": body.p.n_segments,

@@ -7,14 +7,16 @@ from pathlib import Path
 
 import pytest
 
+from wormbrain.brain import convert_params
 from wormbrain.chemotaxis import env_config, load_run_config
-from wormbrain.export import export_model, reference_run
+from wormbrain.export import build_brain, export_model, reference_run
 
 RUNS = Path("reports/comparison/runs")
 CASES = [
     ("real_glu-inhibitory_seed0", ()),
     ("random_glu-inhibitory_seed0", ()),
     ("real_glu-inhibitory_seed0", ("ASEL", "ASER")),  # lesions too
+    ("real_glu-inhibitory_seed0", "dv"),  # back/belly offset and tied D/V classes
 ]
 
 
@@ -22,6 +24,11 @@ CASES = [
 @pytest.mark.parametrize(("run_name", "lesion"), CASES)
 def test_python_and_javascript_agree(tmp_path, run_name, lesion):
     run = json.loads((RUNS / f"{run_name}.json").read_text())
+    if lesion == "dv":
+        new = run | {"muscle_dv": True, "dv_tie": True}
+        x = convert_params(build_brain(run), build_brain(new), run["x"])
+        x[-1] = -0.6  # a clearly non-zero offset
+        run, lesion = new | {"x": x.tolist()}, ()
     cfg = load_run_config("configs/chemotaxis.yaml")
     env = env_config(cfg["env"], cfg["env_overrides"])
     field = {"type": "gaussian", "peak": [0.0, 0.0], "sigma": 4.0, "amplitude": 1.0}

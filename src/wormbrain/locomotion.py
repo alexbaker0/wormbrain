@@ -72,6 +72,7 @@ def setup(
     bounded: bool = True,
     activation: str = "tanh",
     muscle_dv: bool = False,
+    dv_tie: bool = False,
 ):
     cfg = load_config("configs/connectome.yaml")
     if glutamate:
@@ -79,7 +80,7 @@ def setup(
     conn = make_condition(build_connectome(cfg), condition, seed)
     env = load_env_config("configs/env.yaml")
     brain = Brain(conn, BrainConfig(adaptation=adaptation, bounded=bounded, activation=activation,
-                                    muscle_dv=muscle_dv))  # fmt: skip
+                                    muscle_dv=muscle_dv, dv_tie=dv_tie))  # fmt: skip
     return brain, make_body(env["body"]), cfg
 
 

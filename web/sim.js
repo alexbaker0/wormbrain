@@ -76,7 +76,9 @@ export class Brain {
       if (!Number.isFinite(v[i])) throw new Error("brain state became non-finite");
     }
     const drive = matvec(this.R, out, 4 * ROWS), muscle = new Float64Array(4 * ROWS);
-    for (let s = 0; s < 4 * ROWS; s++) muscle[s] = sigmoid(m.muscleGain * drive[s] + m.muscleBias);
+    const dv = m.muscleDV || 0; // dorsal/ventral offset: + on DL, DR rows, - on VL, VR rows
+    for (let s = 0; s < 4 * ROWS; s++)
+      muscle[s] = sigmoid(m.muscleGain * drive[s] + m.muscleBias + (s < 2 * ROWS ? 0.5 : -0.5) * dv);
     return muscle;
   }
 }

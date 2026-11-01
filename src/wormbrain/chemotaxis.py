@@ -22,7 +22,7 @@ from pathlib import Path
 import numpy as np
 import yaml
 
-from .brain import BrainController
+from .brain import BrainController, convert_params
 from .controllers import GradientSteering, TravelingWave
 from .env import (
     Field,
@@ -35,6 +35,7 @@ from .env import (
     run_episode,
     start_positions,
 )
+from .export import build_brain
 from .locomotion import FLAT, setup, train_locomotion
 from .train import cmaes
 
@@ -132,7 +133,7 @@ def stage1(cfg: dict, verbose: bool = False) -> dict:
 def stage2(cfg: dict, x_start: np.ndarray, verbose: bool = False, log_path=None) -> dict:
     brain, body, _ = setup(cfg["condition"], cfg["seed"], cfg["glutamate"], True,
                            cfg.get("bounded", True), cfg.get("activation", "tanh"),
-                           cfg.get("muscle_dv", False))  # fmt: skip
+                           cfg.get("muscle_dv", False), cfg.get("dv_tie", False))  # fmt: skip
     # a starting brain trained without later-added parameters: they start at defaults
     x_start = np.concatenate([x_start, brain.spec.x0()[len(x_start) :]])
     env = env_config(cfg["env"], cfg.get("env_overrides"))
@@ -191,7 +192,7 @@ def evaluate(cfg: dict, x) -> dict:
     """Test-set performance in every evaluation arena, with hand-coded baselines."""
     brain, body, _ = setup(cfg["condition"], cfg["seed"], cfg["glutamate"], True,
                            cfg.get("bounded", True), cfg.get("activation", "tanh"),
-                           cfg.get("muscle_dv", False))  # fmt: skip
+                           cfg.get("muscle_dv", False), cfg.get("dv_tie", False))  # fmt: skip
     ev = cfg["evaluation"]
     out = {}
     for arena, spec in ev["arenas"].items():
@@ -219,7 +220,7 @@ def flat_field_measures(cfg: dict, x) -> dict:
     """Turning of a trained brain on a flat field, 8 headings x 120 s, both measures."""
     brain, body, _ = setup(cfg["condition"], cfg["seed"], cfg["glutamate"], True,
                            cfg.get("bounded", True), cfg.get("activation", "tanh"),
-                           cfg.get("muscle_dv", False))  # fmt: skip
+                           cfg.get("muscle_dv", False), cfg.get("dv_tie", False))  # fmt: skip
     seed = cfg["evaluation"]["test_seed"]
     return {
         "flat_turning_deg_s": float(flat_turning(brain, body, x, 8, 120.0, 0.02, seed)[0]),
@@ -249,7 +250,11 @@ def train_and_evaluate(cfg: dict, out_dir: Path, verbose: bool = False) -> dict:
         # fine-tuning: start the chemotaxis stage from an earlier trained brain
         src_path = Path(cfg["init_from"]) / f"{run_name(cfg)}.json"
         src = json.loads(src_path.read_text())
-        s1 = {"best_x": src["x"], "forward_speed_mm_s": src["stage1_speed_mm_s"],
+        dst, _, _ = setup(cfg["condition"], cfg["seed"], cfg["glutamate"], True,
+                          cfg.get("bounded", True), cfg.get("activation", "tanh"),
+                          cfg.get("muscle_dv", False), cfg.get("dv_tie", False))  # fmt: skip
+        x_src = convert_params(build_brain(src), dst, np.array(src["x"])).tolist()
+        s1 = {"best_x": x_src, "forward_speed_mm_s": src["stage1_speed_mm_s"],
               "reused_from": str(src_path), "init_test_reward":
               src["test"]["gaussian"]["brain"]["reward_mean"]}  # fmt: skip
         s1_path.write_text(json.dumps(s1))
@@ -272,6 +277,7 @@ def train_and_evaluate(cfg: dict, out_dir: Path, verbose: bool = False) -> dict:
         "bounded": cfg.get("bounded", True),
         "activation": cfg.get("activation", "tanh"),
         "muscle_dv": cfg.get("muscle_dv", False),
+        "dv_tie": cfg.get("dv_tie", False),
         "stage1_speed_mm_s": s1["forward_speed_mm_s"],
         "stage1_reused": "reused_from" in s1,
         "chosen": s2["chosen"],

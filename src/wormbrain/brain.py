@@ -85,6 +85,9 @@ class BrainConfig:
     # One trained offset added to every dorsal muscle's input and subtracted from every
     # ventral one, so the two sides can be balanced directly (see README).
     muscle_dv: bool = False
+    # Share tau/bias/gain/adaptation between matching dorsal and ventral motor neuron
+    # classes (VA=DA, VB=DB, VD=DD), as in published neuromechanical models.
+    dv_tie: bool = False
     init: dict = field(default_factory=dict)  # overrides of ParamSpec defaults
 
 
@@ -110,6 +113,9 @@ def _unit_loop_gain(w, slope):
 def _normalise_columns(w):
     total = np.abs(w).sum(0, keepdims=True)
     return np.divide(w, total, out=np.zeros_like(w, dtype=float), where=total > 0)
+
+
+DV_TIE = {"VA": "DA", "VB": "DB", "VD": "DD"}  # ventral class -> dorsal partner
 
 
 class ParamSpec:
@@ -168,8 +174,10 @@ class Brain:
         n = conn.n
         self.n = n
         if cfg.per_class:
-            classes = conn.classes()
-            self.group = np.array([classes.index(c) for c in conn.cell_class])
+            names = [DV_TIE.get(c, c) if cfg.dv_tie else c for c in conn.cell_class]
+            classes = [c for c in conn.classes() if c in set(names)]
+            self.group = np.array([classes.index(c) for c in names])
+            self.group_names = classes
         else:
             self.group = np.arange(n)
         self.spec = ParamSpec(
@@ -351,6 +359,29 @@ class BrainController:
             pre = pre + p["muscle_dv"] * b.dv_side
         muscle = _sigmoid(pre)
         return muscle.reshape(-1, 4, MUSCLE_ROWS)
+
+
+def convert_params(src: Brain, dst: Brain, x: np.ndarray) -> np.ndarray:
+    """Map a parameter vector of ``src`` onto ``dst``'s layout (same connectome classes).
+
+    Per-group blocks: each ``dst`` group takes the mean raw value of the ``src`` neurons
+    in it (so tying VB to DB averages them). Global blocks are copied; blocks ``dst`` has
+    and ``src`` lacks start at their defaults.
+    """
+    x = np.asarray(x, dtype=float)
+    if src.spec.slices == dst.spec.slices and np.array_equal(src.group, dst.group):
+        return x.copy()  # same layout: copy exactly
+    ps, out = src.spec.unpack(x), dst.spec.x0()
+    per_group = {"tau", "bias", "gain", "adapt"}
+    for k, sl in dst.spec.slices.items():
+        if k not in ps:
+            continue
+        if k in per_group:
+            per_neuron = ps[k][0][src.group]
+            out[sl] = [per_neuron[dst.group == g].mean() for g in range(sl.stop - sl.start)]
+        else:
+            out[sl] = ps[k][0]
+    return out
 
 
 def check_finite(v: np.ndarray) -> None:

@@ -191,3 +191,22 @@ def test_muscle_dv_offset_is_appended_and_neutral_at_zero():
     a, b = plain.decode(x[None]), dv.decode(xd[None])
     assert np.allclose(a["tau"], b["tau"]) and np.allclose(a["muscle_bias"], b["muscle_bias"])
     assert dv.dv_side[:48].sum() == 24 and dv.dv_side[48:].sum() == -24
+
+
+def test_dv_tie_shares_dorsal_ventral_classes_and_converts():
+    from wormbrain.brain import convert_params
+    from wormbrain.connectome import build_connectome, load_config
+
+    conn = build_connectome(load_config("configs/connectome.yaml"))
+    plain, tied = Brain(conn, BrainConfig()), Brain(conn, BrainConfig(dv_tie=True, muscle_dv=True))
+    assert tied.group.max() + 1 == plain.group.max() + 1 - 3
+    va, da = conn.index(["VA1"])[0], conn.index(["DA1"])[0]
+    assert tied.group[va] == tied.group[da] and plain.group[va] != plain.group[da]
+    x = np.random.default_rng(1).normal(0, 0.5, plain.spec.size)
+    xt = convert_params(plain, tied, x)
+    assert len(xt) == tied.spec.size
+    a, b = plain.decode(x[None]), tied.decode(xt[None])
+    asel = conn.index(["ASEL"])[0]
+    assert np.isclose(a["tau"][0, asel], b["tau"][0, asel])  # untied classes unchanged
+    assert np.isclose(a["muscle_gain"], b["muscle_gain"]).all()
+    assert np.allclose(convert_params(plain, plain, x), x)
