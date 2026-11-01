@@ -270,6 +270,20 @@ the search narrowed there: a penalty on turning from the first generation blocks
 route to steering, which seems to pass through brains that turn a lot before turning
 is tied to smell.
 
+### Natural rewards (overnight study)
+
+Instead of a straightness penalty, the same four real-connectome brains were
+fine-tuned under five "natural" rewards: fast approach, time spent eating, net energy,
+food that moves, and far food with more time; all scored on one common set of tests
+([`reports/natural_rewards/REPORT.md`](reports/natural_rewards/REPORT.md)). Rewarding
+fast approach alone keeps chemotaxis but does not remove circling; moving food and far
+food loosen circling most (mean turning 177 → 84 and 64°/mm) while keeping 75% of worms
+reaching the food and improving re-finding of moved food (35% → 56–70%). Circling is a
+property of particular brains: one brain circles under every reward, while another
+becomes a fast straight steerer under almost all of them (best: 2°/mm, food reached
+from every start in a median 47 s, moved food re-found 94% of the time). Forcing
+straightness costs chemotaxis (35% reach food); a high energy cost destroys it (14%).
+
 ## Limitations (so far)
 
 - Synapse signs are inferred from transmitter identity; glutamate's sign is a
