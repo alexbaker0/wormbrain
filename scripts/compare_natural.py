@@ -54,6 +54,8 @@ SCENARIOS = [  # (label, results folder, config)
     ("F. patch world, from scratch", "reports/patches/runs", "configs/patches.yaml"),
     ("G. patch world v2 (12 min, wrap-around)", "reports/patches_long/runs",
      "configs/patches_long.yaml"),
+    ("H. patch world v2 + back/belly offset", "reports/patches_dv/runs",
+     "configs/patches_dv.yaml"),
 ]  # fmt: skip
 RUN_NAMES = [f"real_glu-{g}_seed{s}" for g in ("excitatory", "inhibitory") for s in (0, 1)]
 DT, DURATION, N = 0.02, 150.0, 32
