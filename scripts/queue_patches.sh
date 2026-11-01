@@ -20,7 +20,7 @@ MSG
   echo "push failed for: $msg"
 }
 
-for config in patches patches_finetune; do
+for config in ${CONFIGS:-patches patches_finetune}; do
   echo "$(date -u +%FT%TZ) starting $config"
   uv run python -W ignore scripts/chemotaxis_study.py --config "configs/$config.yaml" \
     --conditions real --seeds 2 --workers 4 --out "reports/$config"

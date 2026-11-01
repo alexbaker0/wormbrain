@@ -52,8 +52,8 @@ SCENARIOS = [  # (label, results folder, config)
     ("D. moving food", "reports/natural_moving/runs", "configs/natural_moving.yaml"),
     ("E. far food, longer", "reports/natural_far/runs", "configs/natural_far.yaml"),
     ("F. patch world, from scratch", "reports/patches/runs", "configs/patches.yaml"),
-    ("G. patch world, fine-tuned", "reports/patches_finetune/runs",
-     "configs/patches_finetune.yaml"),
+    ("G. patch world v2 (12 min, wrap-around)", "reports/patches_long/runs",
+     "configs/patches_long.yaml"),
 ]  # fmt: skip
 RUN_NAMES = [f"real_glu-{g}_seed{s}" for g in ("excitatory", "inhibitory") for s in (0, 1)]
 DT, DURATION, N = 0.02, 150.0, 32
@@ -77,9 +77,9 @@ def tests(make_controller, body):
     after = ep2.t > 60.0
     d2 = np.linalg.norm(ep2.head[after] - np.array(new), axis=-1)
     patches = PatchField({"half_size": 25.0, "n_patches": 24, "sigma": 1.5, "eat_radius": 1.0,
-                          "eat_rate": 0.1, "min_spacing": 6.0})  # fmt: skip
+                          "eat_rate": 0.03, "min_spacing": 6.0, "periodic": True})  # fmt: skip
     ph, phd = start_positions({"half_size": 15.0, "clearance": 4.0}, patches, N, seed=9999)
-    ep3 = run_episode(make_controller(N), patches, ph, phd, duration=240.0, dt=DT, body=body)
+    ep3 = run_episode(make_controller(N), patches, ph, phd, duration=720.0, dt=DT, body=body)
     flat = run_episode(make_controller(8), FLAT, np.zeros((8, 2)),
                        np.random.default_rng(4244).uniform(0, 2 * np.pi, 8), duration=120.0,
                        dt=DT, body=body)  # fmt: skip
@@ -136,7 +136,7 @@ def main():
         "",
         "| scenario | run | reached food | median time to food | time at food "
         "| climbed | moving food re-reached | flat-field turning (°/mm) "
-        "| patch world: food eaten in 4 min |",
+        "| patch world v2: food eaten in 12 min |",
         "|---|---|---|---|---|---|---|---|---|",
     ]
     for r in rows:
