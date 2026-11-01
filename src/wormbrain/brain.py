@@ -82,6 +82,9 @@ class BrainConfig:
     # rest, so a synapse transmits changes up or down around a tonic release level.
     activation: str = "tanh"  # sigmoid let no salt signal reach the motor neurons
     lesion: tuple[str, ...] = ()
+    # One trained offset added to every dorsal muscle's input and subtracted from every
+    # ventral one, so the two sides can be balanced directly (see README).
+    muscle_dv: bool = False
     init: dict = field(default_factory=dict)  # overrides of ParamSpec defaults
 
 
@@ -112,7 +115,14 @@ def _normalise_columns(w):
 class ParamSpec:
     """Layout of the flat parameter vector the optimiser sees."""
 
-    def __init__(self, n_groups: int, init: dict, adaptation: bool = True, bounded: bool = True):
+    def __init__(
+        self,
+        n_groups: int,
+        init: dict,
+        adaptation: bool = True,
+        bounded: bool = True,
+        muscle_dv: bool = False,
+    ):
         # name: (size, initial raw value); transforms are in Brain.decode
         self.blocks = {
             "tau": (n_groups, 0.0),
@@ -128,6 +138,8 @@ class ParamSpec:
         }
         if adaptation:
             self.blocks |= {"adapt": (n_groups, np.log(0.5)), "adapt_tau": (1, 0.0)}
+        if muscle_dv:  # last, so vectors trained without it are a prefix of this layout
+            self.blocks |= {"muscle_dv": (1, 0.0)}
         if bounded:  # every bounded range is centred on the old starting value
             self.blocks = {k: (n, 0.0) for k, (n, _) in self.blocks.items()}
         self.blocks = {k: (n, init.get(k, v)) for k, (n, v) in self.blocks.items()}
@@ -160,7 +172,9 @@ class Brain:
             self.group = np.array([classes.index(c) for c in conn.cell_class])
         else:
             self.group = np.arange(n)
-        self.spec = ParamSpec(int(self.group.max()) + 1, cfg.init, cfg.adaptation, cfg.bounded)
+        self.spec = ParamSpec(
+            int(self.group.max()) + 1, cfg.init, cfg.adaptation, cfg.bounded, cfg.muscle_dv
+        )
 
         alive = np.ones(n)
         alive[conn.index(list(cfg.lesion))] = 0.0
@@ -195,6 +209,8 @@ class Brain:
             partner = QUADRANTS.index(QUADRANTS[q][0] + ("R" if QUADRANTS[q][1] == "L" else "L"))
             R[:, s] = R[:, partner * MUSCLE_ROWS + r]
         self.R = R * alive[:, None]
+        # +1/2 for dorsal muscles, -1/2 for ventral ones (QUADRANTS = DL, DR, VL, VR)
+        self.dv_side = np.repeat([0.5, 0.5, -0.5, -0.5], MUSCLE_ROWS)
 
         # proprioception: B-class neuron position from its neuromuscular synapses
         prop = [k for k, c in enumerate(conn.cell_class) if c in cfg.proprio_classes]
@@ -238,6 +254,7 @@ class Brain:
             "muscle_bias": sym(p["muscle_bias"], BOUNDS["muscle_bias"]),
             "adapt": None,
             "adapt_tau": None,
+            "muscle_dv": sym(p["muscle_dv"], BOUNDS["muscle_dv"]) if "muscle_dv" in p else None,
         }
         if "adapt" in p:
             out["adapt"] = pos(p["adapt"], *BOUNDS["adapt"], 0.5)[:, self.group]
@@ -256,6 +273,7 @@ BOUNDS = {
     "proprio_gain": 10.0,
     "muscle_gain": (0.5, 30.0),
     "muscle_bias": 5.0,
+    "muscle_dv": 2.0,
     "adapt": (0.05, 5.0),
 }
 
@@ -328,7 +346,10 @@ class BrainController:
         self.k += 1
         if self.record_every and self.k % self.record_every == 0:
             self.activity.append(self.v.copy())
-        muscle = _sigmoid(p["muscle_gain"] * (out @ b.R) + p["muscle_bias"])
+        pre = p["muscle_gain"] * (out @ b.R) + p["muscle_bias"]
+        if p["muscle_dv"] is not None:
+            pre = pre + p["muscle_dv"] * b.dv_side
+        muscle = _sigmoid(pre)
         return muscle.reshape(-1, 4, MUSCLE_ROWS)
 
 

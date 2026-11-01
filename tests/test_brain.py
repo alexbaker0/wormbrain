@@ -177,3 +177,17 @@ def test_unbounded_model_still_available(conn):
     x = brain.spec.x0()
     x[brain.spec.slices["g_chem"]] = np.log(0.01)
     assert brain.decode(x)["g_chem"][0, 0] == pytest.approx(0.01)
+
+
+def test_muscle_dv_offset_is_appended_and_neutral_at_zero():
+    from wormbrain.connectome import build_connectome, load_config
+
+    conn = build_connectome(load_config("configs/connectome.yaml"))
+    plain, dv = Brain(conn, BrainConfig()), Brain(conn, BrainConfig(muscle_dv=True))
+    assert dv.spec.size == plain.spec.size + 1
+    x = np.random.default_rng(0).normal(0, 0.3, plain.spec.size)
+    xd = np.concatenate([x, [0.0]])
+    assert dv.decode(xd[None])["muscle_dv"][0, 0] == 0.0
+    a, b = plain.decode(x[None]), dv.decode(xd[None])
+    assert np.allclose(a["tau"], b["tau"]) and np.allclose(a["muscle_bias"], b["muscle_bias"])
+    assert dv.dv_side[:48].sum() == 24 and dv.dv_side[48:].sum() == -24

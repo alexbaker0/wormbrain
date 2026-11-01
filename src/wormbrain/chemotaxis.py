@@ -131,7 +131,10 @@ def stage1(cfg: dict, verbose: bool = False) -> dict:
 
 def stage2(cfg: dict, x_start: np.ndarray, verbose: bool = False, log_path=None) -> dict:
     brain, body, _ = setup(cfg["condition"], cfg["seed"], cfg["glutamate"], True,
-                           cfg.get("bounded", True), cfg.get("activation", "tanh"))  # fmt: skip
+                           cfg.get("bounded", True), cfg.get("activation", "tanh"),
+                           cfg.get("muscle_dv", False))  # fmt: skip
+    # a starting brain trained without later-added parameters: they start at defaults
+    x_start = np.concatenate([x_start, brain.spec.x0()[len(x_start) :]])
     env = env_config(cfg["env"], cfg.get("env_overrides"))
     field = make_field(env["field"])
     s2 = cfg["stage2"]
@@ -187,7 +190,8 @@ def _metrics(ep, field, env) -> dict:
 def evaluate(cfg: dict, x) -> dict:
     """Test-set performance in every evaluation arena, with hand-coded baselines."""
     brain, body, _ = setup(cfg["condition"], cfg["seed"], cfg["glutamate"], True,
-                           cfg.get("bounded", True), cfg.get("activation", "tanh"))  # fmt: skip
+                           cfg.get("bounded", True), cfg.get("activation", "tanh"),
+                           cfg.get("muscle_dv", False))  # fmt: skip
     ev = cfg["evaluation"]
     out = {}
     for arena, spec in ev["arenas"].items():
@@ -214,7 +218,8 @@ def evaluate(cfg: dict, x) -> dict:
 def flat_field_measures(cfg: dict, x) -> dict:
     """Turning of a trained brain on a flat field, 8 headings x 120 s, both measures."""
     brain, body, _ = setup(cfg["condition"], cfg["seed"], cfg["glutamate"], True,
-                           cfg.get("bounded", True), cfg.get("activation", "tanh"))  # fmt: skip
+                           cfg.get("bounded", True), cfg.get("activation", "tanh"),
+                           cfg.get("muscle_dv", False))  # fmt: skip
     seed = cfg["evaluation"]["test_seed"]
     return {
         "flat_turning_deg_s": float(flat_turning(brain, body, x, 8, 120.0, 0.02, seed)[0]),
@@ -266,6 +271,7 @@ def train_and_evaluate(cfg: dict, out_dir: Path, verbose: bool = False) -> dict:
         "seed": cfg["seed"],
         "bounded": cfg.get("bounded", True),
         "activation": cfg.get("activation", "tanh"),
+        "muscle_dv": cfg.get("muscle_dv", False),
         "stage1_speed_mm_s": s1["forward_speed_mm_s"],
         "stage1_reused": "reused_from" in s1,
         "chosen": s2["chosen"],
