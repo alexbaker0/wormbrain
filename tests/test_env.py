@@ -162,3 +162,17 @@ def test_patch_world_starts_and_layouts():
     assert not np.allclose(f.xy, layout)  # a new seed draws a new arena
     start_positions({"half_size": 15.0}, f, 5, seed=3)
     np.testing.assert_array_equal(f.xy, layout)  # and the same seed the same arena
+
+
+def test_patch_world_periodic_wraps_smell_and_eating():
+    from wormbrain.env import PatchField
+
+    f = PatchField({"n_patches": 1, "half_size": 10.0, "periodic": True, "eat_radius": 1.0})
+    f.xy = np.array([[9.5, 0.0]])
+    across = np.array([[-9.8, 0.0]])  # 0.7 mm away through the edge
+    assert f.conc(np.array([[9.5 - 0.7, 0.0]]))[0] == pytest.approx(f.conc(across)[0])
+    f.reset_worms(1)
+    assert f.consume(across, 1.0)[0] > 0
+    flat = PatchField({"n_patches": 1, "half_size": 10.0, "eat_radius": 1.0})
+    flat.xy = f.xy.copy()
+    assert flat.conc(across)[0] < 1e-10

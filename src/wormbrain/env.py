@@ -75,6 +75,8 @@ class PatchField:
     worm has its own copy of the food: a patch holds ``capacity`` units, a worm whose
     head is within ``eat_radius`` mm eats ``eat_rate`` units per second, and a patch's
     smell fades in proportion to what is left. ``relayout(seed)`` draws a new arena.
+    With ``periodic: true`` the arena repeats in every direction (a worm that crawls off
+    one edge is among the same patches again), so the food never runs out of reach.
     """
 
     kind = "patches"
@@ -88,6 +90,7 @@ class PatchField:
         self.eat_radius = cfg.get("eat_radius", 0.75)
         self.eat_rate = cfg.get("eat_rate", 0.1)
         self.min_spacing = cfg.get("min_spacing", 6.0)
+        self.periodic = bool(cfg.get("periodic", False))
         self.relayout(cfg.get("seed", 0))
         self.reset_worms(1)
 
@@ -96,9 +99,13 @@ class PatchField:
         xy: list[np.ndarray] = []
         while len(xy) < self.k:
             p = rng.uniform(-self.half, self.half, 2)
-            if all(np.linalg.norm(p - q) >= self.min_spacing for q in xy):
+            if all(np.linalg.norm(self._wrap(p - q)) >= self.min_spacing for q in xy):
                 xy.append(p)
         self.xy = np.array(xy)
+
+    def _wrap(self, d: np.ndarray) -> np.ndarray:
+        """Displacements to the nearest copy of each patch when the arena repeats."""
+        return (d + self.half) % (2 * self.half) - self.half if self.periodic else d
 
     def reset_worms(self, n: int) -> None:
         self.left = np.full((n, self.k), self.capacity)  # food left, per worm per patch
@@ -112,13 +119,13 @@ class PatchField:
 
     def conc(self, pos) -> np.ndarray:
         pos = np.asarray(pos, dtype=float)
-        d2 = ((pos[..., None, :] - self.xy) ** 2).sum(-1)  # (..., K)
+        d2 = (self._wrap(pos[..., None, :] - self.xy) ** 2).sum(-1)  # (..., K)
         amp = self.left / self.capacity if pos.ndim == 2 and len(pos) == len(self.left) else 1.0
         return (amp * np.exp(-d2 / (2 * self.sigma**2))).sum(-1)
 
     def consume(self, head: np.ndarray, dt: float) -> np.ndarray:
         """Worms at a patch eat from it; returns the amount each worm ate this step."""
-        near = ((head[:, None, :] - self.xy) ** 2).sum(-1) < self.eat_radius**2
+        near = (self._wrap(head[:, None, :] - self.xy) ** 2).sum(-1) < self.eat_radius**2
         bite = np.minimum(self.left, self.eat_rate * dt) * near
         self.left -= bite
         return bite.sum(1)
