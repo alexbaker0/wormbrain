@@ -88,6 +88,11 @@ class BrainConfig:
     # Share tau/bias/gain/adaptation between matching dorsal and ventral motor neuron
     # classes (VA=DA, VB=DB, VD=DD), as in published neuromechanical models.
     dv_tie: bool = False
+    # Head motor neurons that sense the bending of the head where they synapse (dorsal ones
+    # see +curvature, ventral ones -curvature), with their own trained gain. Real SMDs are
+    # proprioceptive (Yeon et al. 2018); this lets steering depend on the head's phase.
+    head_proprio: bool = False
+    head_proprio_classes: tuple[str, ...] = ("SMD", "RMD")
     init: dict = field(default_factory=dict)  # overrides of ParamSpec defaults
 
 
@@ -128,6 +133,7 @@ class ParamSpec:
         adaptation: bool = True,
         bounded: bool = True,
         muscle_dv: bool = False,
+        head_proprio: bool = False,
     ):
         # name: (size, initial raw value); transforms are in Brain.decode
         self.blocks = {
@@ -146,6 +152,8 @@ class ParamSpec:
             self.blocks |= {"adapt": (n_groups, np.log(0.5)), "adapt_tau": (1, 0.0)}
         if muscle_dv:  # last, so vectors trained without it are a prefix of this layout
             self.blocks |= {"muscle_dv": (1, 0.0)}
+        if head_proprio:
+            self.blocks |= {"head_proprio_gain": (1, 0.0)}
         if bounded:  # every bounded range is centred on the old starting value
             self.blocks = {k: (n, 0.0) for k, (n, _) in self.blocks.items()}
         self.blocks = {k: (n, init.get(k, v)) for k, (n, v) in self.blocks.items()}
@@ -181,7 +189,12 @@ class Brain:
         else:
             self.group = np.arange(n)
         self.spec = ParamSpec(
-            int(self.group.max()) + 1, cfg.init, cfg.adaptation, cfg.bounded, cfg.muscle_dv
+            int(self.group.max()) + 1,
+            cfg.init,
+            cfg.adaptation,
+            cfg.bounded,
+            cfg.muscle_dv,
+            cfg.head_proprio,
         )
 
         alive = np.ones(n)
@@ -233,6 +246,25 @@ class Brain:
         sense = np.clip(pos - cfg.proprio_offset, joints[0], joints[-1])
         eye = np.eye(len(joints))
         self.joints_to_prop = np.stack([np.interp(sense, joints, e) for e in eye], axis=1)
+        # head proprioception: D/V head motor neurons sense the bend where they synapse
+        head = []
+        if cfg.head_proprio:
+            head = [k for k, c in enumerate(conn.cell_class)
+                    if c in cfg.head_proprio_classes and conn.nmj[k].sum() > 0
+                    and conn.neurons[k][len(c):len(c) + 1] in ("D", "V")]  # fmt: skip
+        self.head_idx = np.array(head, dtype=int)
+        self.head_side = np.array(
+            [1.0 if conn.neurons[k][len(conn.cell_class[k])] == "D" else -1.0 for k in head]
+        )
+        neck = conn.muscle_row <= 8  # SMD also runs along the body; sense where the head bends
+        hpos = np.array([(conn.nmj[k] * neck) @ row_pos / max((conn.nmj[k] * neck).sum(), 1e-9)
+                         for k in head])  # fmt: skip
+        hsense = np.clip(hpos, joints[0], joints[-1]) if head else np.zeros(0)
+        self.joints_to_head = (
+            np.stack([np.interp(hsense, joints, e) for e in eye], axis=1)
+            if head
+            else np.zeros((0, len(joints)))
+        )
         self.kappa_max = body.kappa_max
 
     @property
@@ -263,6 +295,11 @@ class Brain:
             "adapt": None,
             "adapt_tau": None,
             "muscle_dv": sym(p["muscle_dv"], BOUNDS["muscle_dv"]) if "muscle_dv" in p else None,
+            "head_proprio_gain": (
+                sym(p["head_proprio_gain"], BOUNDS["proprio_gain"])
+                if "head_proprio_gain" in p
+                else None
+            ),
         }
         if "adapt" in p:
             out["adapt"] = pos(p["adapt"], *BOUNDS["adapt"], 0.5)[:, self.group]
@@ -329,6 +366,9 @@ class BrainController:
         inp[:, b.off_idx] += p["salt_off"] * np.maximum(-rel, 0)[:, None]
         kappa = obs["kappa"] @ b.joints_to_prop.T / b.kappa_max  # (P, n_prop)
         inp[:, b.prop_idx] += p["proprio_gain"] * b.prop_side * kappa
+        if p["head_proprio_gain"] is not None and len(b.head_idx):
+            kh = obs["kappa"] @ b.joints_to_head.T / b.kappa_max
+            inp[:, b.head_idx] += p["head_proprio_gain"] * b.head_side * kh
         return inp
 
     def step(self, obs: dict, dt: float) -> np.ndarray:

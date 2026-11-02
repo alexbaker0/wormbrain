@@ -1,6 +1,7 @@
 """Can a trained brain steer at all? Feed it a fake smell that rises and falls.
 
-    uv run python scripts/steering_probe.py
+    uv run python scripts/steering_probe.py              # the fixed list below
+    uv run python scripts/steering_probe.py reports/X    # every run in reports/X/runs
 
 On a flat field the smell at the head is replaced by a triangle wave (10 s rising from 0.05
 to 0.6, then 10 s falling), whatever the worm does. A steering brain turns differently when
@@ -71,11 +72,15 @@ def probe(make, n=8):
     return r_up, r_down, one_way, speed
 
 
-def main():
+def main(folders=()):
     rows = ["| brain | run | turning while smell rises (°/s) | while it falls (°/s) "
             "| steering response (fall − rise) | one-way share | net speed (mm/s) |",
             "|---|---|---|---|---|---|---|"]  # fmt: skip
     entries = [(lab, Path(f) / f"{r}.json") for lab, f, r in BRAINS]
+    if folders:
+        entries = [
+            (Path(f).name, p) for f in folders for p in sorted(Path(f, "runs").glob("*.json"))
+        ]
     for label, path in entries + [("hand-coded steering", None)]:
         if path is None:
             make = lambda n: GradientSteering()  # noqa: E731
@@ -89,9 +94,14 @@ def main():
         rows.append(f"| {label} | {name} | {up:+.1f} | {down:+.1f} | {down - up:+.1f} "
                     f"| {ow:.0%} | {sp:.3f} |")  # fmt: skip
         print(rows[-1], flush=True)
-    Path("reports/steering_probe.md").write_text("\n".join(
+    out = (
+        Path(folders[0], "steering.md") if len(folders) == 1 else Path("reports/steering_probe.md")
+    )
+    out.write_text("\n".join(
         ["# Steering probe", "", __doc__.split("\n\n", 2)[2].strip(), "", *rows, ""]))  # fmt: skip
 
 
 if __name__ == "__main__":
-    main()
+    import sys
+
+    main(sys.argv[1:])

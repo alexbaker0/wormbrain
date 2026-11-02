@@ -210,3 +210,23 @@ def test_dv_tie_shares_dorsal_ventral_classes_and_converts():
     assert np.isclose(a["tau"][0, asel], b["tau"][0, asel])  # untied classes unchanged
     assert np.isclose(a["muscle_gain"], b["muscle_gain"]).all()
     assert np.allclose(convert_params(plain, plain, x), x)
+
+
+def test_head_proprioception_senses_head_bending_with_own_gain():
+    from wormbrain.connectome import build_connectome, load_config
+
+    conn = build_connectome(load_config("configs/connectome.yaml"))
+    plain, head = Brain(conn, BrainConfig()), Brain(conn, BrainConfig(head_proprio=True))
+    assert head.spec.size == plain.spec.size + 1
+    names = {conn.neurons[i] for i in head.head_idx}
+    assert {"SMDDL", "SMDVR", "RMDDL", "RMDVR"} <= names and "RMDL" not in names
+    assert head.joints_to_head.argmax(1).max() <= 3  # sensed in the head/neck
+    x = np.zeros(head.spec.size)
+    x[head.spec.slices["head_proprio_gain"]] = 1.0
+    ctl = BrainController(head, x[None])
+    ctl.reset(1)
+    kappa = np.zeros((1, head.joints_to_head.shape[1]))
+    kappa[0, :4] = 1.0  # bend the head one way
+    inp = ctl.sensory_input({"t": 0.0, "conc": np.zeros(1), "kappa": kappa}, 0.02)
+    d, v = conn.index(["SMDDL"])[0], conn.index(["SMDVL"])[0]
+    assert inp[0, d] > 0 > inp[0, v]  # dorsal and ventral sides see opposite signs

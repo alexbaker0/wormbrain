@@ -17,6 +17,7 @@ CASES = [
     ("random_glu-inhibitory_seed0", ()),
     ("real_glu-inhibitory_seed0", ("ASEL", "ASER")),  # lesions too
     ("real_glu-inhibitory_seed0", "dv"),  # back/belly offset and tied D/V classes
+    ("real_glu-inhibitory_seed0", "head"),  # ... plus head proprioception
 ]
 
 
@@ -24,10 +25,13 @@ CASES = [
 @pytest.mark.parametrize(("run_name", "lesion"), CASES)
 def test_python_and_javascript_agree(tmp_path, run_name, lesion):
     run = json.loads((RUNS / f"{run_name}.json").read_text())
-    if lesion == "dv":
-        new = run | {"muscle_dv": True, "dv_tie": True}
-        x = convert_params(build_brain(run), build_brain(new), run["x"])
-        x[-1] = -0.6  # a clearly non-zero offset
+    if lesion in ("dv", "head"):
+        new = run | {"muscle_dv": True, "dv_tie": True, "head_proprio": lesion == "head"}
+        dst = build_brain(new)
+        x = convert_params(build_brain(run), dst, run["x"])
+        x[dst.spec.slices["muscle_dv"]] = -0.6  # a clearly non-zero offset
+        if lesion == "head":
+            x[dst.spec.slices["head_proprio_gain"]] = 0.8
         run, lesion = new | {"x": x.tolist()}, ()
     cfg = load_run_config("configs/chemotaxis.yaml")
     env = env_config(cfg["env"], cfg["env_overrides"])

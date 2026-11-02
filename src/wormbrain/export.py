@@ -29,7 +29,8 @@ def build_brain(run: dict, lesion=()) -> Brain:
     conn = make_condition(build_connectome(cfg), run["condition"], run["seed"])
     bc = BrainConfig(bounded=run.get("bounded", False), activation=run.get("activation", "sigmoid"),
                      lesion=tuple(lesion), muscle_dv=run.get("muscle_dv", False),
-                     dv_tie=run.get("dv_tie", False))  # fmt: skip
+                     dv_tie=run.get("dv_tie", False),
+                     head_proprio=run.get("head_proprio", False))  # fmt: skip
     return Brain(conn, bc)
 
 
@@ -47,6 +48,8 @@ def export_model(run: dict, title: str, body_cfg: dict) -> dict:
 
     def scalar(key):
         return float(np.ravel(p[key])[0])
+
+    head_gain = scalar("head_proprio_gain") if p["head_proprio_gain"] is not None else 0.0
 
     return {
         "title": title,
@@ -73,10 +76,13 @@ def export_model(run: dict, title: str, body_cfg: dict) -> dict:
         "concRef": brain.cfg.conc_ref,
         "onIdx": brain.on_idx.tolist(),
         "offIdx": brain.off_idx.tolist(),
-        "propIdx": brain.prop_idx.tolist(),
-        "propSide": brain.prop_side.tolist(),
-        "jointsToProp": brain.joints_to_prop.tolist(),
-        "proprioGain": scalar("proprio_gain"),
+        # body (B-class) and head proprioception as one list, each entry with its own gain
+        "propIdx": np.concatenate([brain.prop_idx, brain.head_idx]).tolist(),
+        "propSide": np.concatenate(
+            [scalar("proprio_gain") * brain.prop_side, head_gain * brain.head_side]
+        ).tolist(),  # fmt: skip
+        "jointsToProp": np.concatenate([brain.joints_to_prop, brain.joints_to_head]).tolist(),
+        "proprioGain": 1.0,
         "muscleGain": scalar("muscle_gain"),
         "muscleBias": scalar("muscle_bias"),
         "muscleDV": scalar("muscle_dv") if p["muscle_dv"] is not None else 0.0,

@@ -62,6 +62,14 @@ SCENARIOS = [  # (label, results folder, config)
      "configs/patches_scratch.yaml"),
     ("K. patch world v2 from scratch, symmetric body", "reports/patches_sym/runs",
      "configs/patches_sym.yaml"),
+    ("L. curriculum, usual body: gradient stage", "reports/curr_usual_grad/runs",
+     "configs/curr_usual_grad.yaml"),
+    ("M. curriculum, usual body: then patch world", "reports/curr_usual_patch/runs",
+     "configs/curr_usual_patch.yaml"),
+    ("N. curriculum, symmetric body: gradient stage", "reports/curr_sym_grad/runs",
+     "configs/curr_sym_grad.yaml"),
+    ("O. curriculum, symmetric body: then patch world", "reports/curr_sym_patch/runs",
+     "configs/curr_sym_patch.yaml"),
 ]  # fmt: skip
 RUN_NAMES = [f"real_glu-{g}_seed{s}" for g in ("excitatory", "inhibitory") for s in (0, 1)]
 DT, DURATION, N = 0.02, 150.0, 32

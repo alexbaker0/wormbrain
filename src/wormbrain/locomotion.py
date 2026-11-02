@@ -73,6 +73,7 @@ def setup(
     activation: str = "tanh",
     muscle_dv: bool = False,
     dv_tie: bool = False,
+    head_proprio: bool = False,
 ):
     cfg = load_config("configs/connectome.yaml")
     if glutamate:
@@ -80,7 +81,8 @@ def setup(
     conn = make_condition(build_connectome(cfg), condition, seed)
     env = load_env_config("configs/env.yaml")
     brain = Brain(conn, BrainConfig(adaptation=adaptation, bounded=bounded, activation=activation,
-                                    muscle_dv=muscle_dv, dv_tie=dv_tie))  # fmt: skip
+                                    muscle_dv=muscle_dv, dv_tie=dv_tie,
+                                    head_proprio=head_proprio))  # fmt: skip
     return brain, make_body(env["body"]), cfg
 
 
@@ -117,9 +119,10 @@ def train_locomotion(
     activation: str = "tanh",
     muscle_dv: bool = False,
     dv_tie: bool = False,
+    head_proprio: bool = False,
 ) -> dict:
     brain, body, cfg = setup(condition, seed, glutamate, adaptation, bounded, activation,
-                             muscle_dv, dv_tie)  # fmt: skip
+                             muscle_dv, dv_tie, head_proprio)  # fmt: skip
 
     def objective(X):
         n = len(X)
@@ -140,6 +143,7 @@ def train_locomotion(
         "activation": brain.cfg.activation,
         "muscle_dv": brain.cfg.muscle_dv,
         "dv_tie": brain.cfg.dv_tie,
+        "head_proprio": brain.cfg.head_proprio,
         "n_params": brain.n_params,
         "generations": generations,
         "popsize": popsize,

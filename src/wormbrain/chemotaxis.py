@@ -122,9 +122,11 @@ def stage1(cfg: dict, verbose: bool = False) -> dict:
         same = (r["generations"], r["popsize"], r["sigma0"]) == (
             s1["generations"], s1["popsize"], s1["sigma0"])  # fmt: skip
         model = (r["adaptation"], r.get("bounded", False), r.get("activation", "sigmoid"),
-                 r.get("muscle_dv", False), r.get("dv_tie", False))  # fmt: skip
+                  r.get("muscle_dv", False), r.get("dv_tie", False),
+                 r.get("head_proprio", False))  # fmt: skip
         want = (True, cfg.get("bounded", True), cfg.get("activation", "tanh"),
-                cfg.get("muscle_dv", False), cfg.get("dv_tie", False))  # fmt: skip
+                cfg.get("muscle_dv", False), cfg.get("dv_tie", False),
+                           cfg.get("head_proprio", False))  # fmt: skip
         if same and model == want:
             return r | {"reused_from": str(cached)}
     return train_locomotion(cfg["condition"], cfg["seed"], cfg["glutamate"], True,
@@ -132,14 +134,16 @@ def stage1(cfg: dict, verbose: bool = False) -> dict:
                             verbose=verbose, bounded=cfg.get("bounded", True),
                             activation=cfg.get("activation", "tanh"),
                             muscle_dv=cfg.get("muscle_dv", False),
-                            dv_tie=cfg.get("dv_tie", False))  # fmt: skip
+                            dv_tie=cfg.get("dv_tie", False),
+                            head_proprio=cfg.get("head_proprio", False))  # fmt: skip
 
 
 def stage2(cfg: dict, x_start: np.ndarray, verbose: bool = False, log_path=None,
            checkpoint=None) -> dict:  # fmt: skip
     brain, body, _ = setup(cfg["condition"], cfg["seed"], cfg["glutamate"], True,
                            cfg.get("bounded", True), cfg.get("activation", "tanh"),
-                           cfg.get("muscle_dv", False), cfg.get("dv_tie", False))  # fmt: skip
+                           cfg.get("muscle_dv", False), cfg.get("dv_tie", False),
+                           cfg.get("head_proprio", False))  # fmt: skip
     # a starting brain trained without later-added parameters: they start at defaults
     x_start = np.concatenate([x_start, brain.spec.x0()[len(x_start) :]])
     env = env_config(cfg["env"], cfg.get("env_overrides"))
@@ -199,7 +203,8 @@ def evaluate(cfg: dict, x) -> dict:
     """Test-set performance in every evaluation arena, with hand-coded baselines."""
     brain, body, _ = setup(cfg["condition"], cfg["seed"], cfg["glutamate"], True,
                            cfg.get("bounded", True), cfg.get("activation", "tanh"),
-                           cfg.get("muscle_dv", False), cfg.get("dv_tie", False))  # fmt: skip
+                           cfg.get("muscle_dv", False), cfg.get("dv_tie", False),
+                           cfg.get("head_proprio", False))  # fmt: skip
     ev = cfg["evaluation"]
     out = {}
     for arena, spec in ev["arenas"].items():
@@ -227,7 +232,8 @@ def flat_field_measures(cfg: dict, x) -> dict:
     """Turning of a trained brain on a flat field, 8 headings x 120 s, both measures."""
     brain, body, _ = setup(cfg["condition"], cfg["seed"], cfg["glutamate"], True,
                            cfg.get("bounded", True), cfg.get("activation", "tanh"),
-                           cfg.get("muscle_dv", False), cfg.get("dv_tie", False))  # fmt: skip
+                           cfg.get("muscle_dv", False), cfg.get("dv_tie", False),
+                           cfg.get("head_proprio", False))  # fmt: skip
     seed = cfg["evaluation"]["test_seed"]
     return {
         "flat_turning_deg_s": float(flat_turning(brain, body, x, 8, 120.0, 0.02, seed)[0]),
@@ -243,7 +249,7 @@ def _same_stage1(cfg: dict, other: Path) -> bool:
         return False
     o = yaml.safe_load((other / "config.yaml").read_text())
     keys = ("condition", "glutamate", "seed", "bounded", "activation", "stage1",
-            "muscle_dv", "dv_tie")  # fmt: skip
+            "muscle_dv", "dv_tie", "head_proprio")  # fmt: skip
     return all(o.get(k) == cfg.get(k) for k in keys)
 
 
@@ -260,7 +266,8 @@ def train_and_evaluate(cfg: dict, out_dir: Path, verbose: bool = False) -> dict:
         src = json.loads(src_path.read_text())
         dst, _, _ = setup(cfg["condition"], cfg["seed"], cfg["glutamate"], True,
                           cfg.get("bounded", True), cfg.get("activation", "tanh"),
-                          cfg.get("muscle_dv", False), cfg.get("dv_tie", False))  # fmt: skip
+                          cfg.get("muscle_dv", False), cfg.get("dv_tie", False),
+                           cfg.get("head_proprio", False))  # fmt: skip
         x_src = convert_params(build_brain(src), dst, np.array(src["x"])).tolist()
         s1 = {"best_x": x_src, "forward_speed_mm_s": src["stage1_speed_mm_s"],
               "reused_from": str(src_path), "init_test_reward":
@@ -287,6 +294,7 @@ def train_and_evaluate(cfg: dict, out_dir: Path, verbose: bool = False) -> dict:
         "activation": cfg.get("activation", "tanh"),
         "muscle_dv": cfg.get("muscle_dv", False),
         "dv_tie": cfg.get("dv_tie", False),
+        "head_proprio": cfg.get("head_proprio", False),
         "stage1_speed_mm_s": s1["forward_speed_mm_s"],
         "stage1_reused": "reused_from" in s1,
         "chosen": s2["chosen"],

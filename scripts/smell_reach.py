@@ -9,6 +9,7 @@ and, after the slash, its total variation. Writes reports/smell_reach.md.
 
 import json
 import sys
+from pathlib import Path
 
 import numpy as np
 
@@ -34,12 +35,17 @@ groups = {
     "AVB": ["AVBL", "AVBR"],
 }
 lines = []
-for f, r in [
+CASES = [
     ("comparison", "real_glu-excitatory_seed1"),
     ("patches_scratch", "real_glu-excitatory_seed1"),
     ("patches_sym", "real_glu-excitatory_seed0"),
     ("patches_sym", "real_glu-inhibitory_seed1"),
-]:
+]
+if len(sys.argv) > 1:  # report folder names: every run in reports/<name>/runs
+    CASES = [
+        (f, p.stem) for f in sys.argv[1:] for p in sorted(Path("reports", f, "runs").glob("*.json"))
+    ]
+for f, r in CASES:
     run = json.load(open(f"reports/{f}/runs/{r}.json"))
     b = build_brain(run)
     x = np.array(run["x"])
@@ -59,7 +65,9 @@ for f, r in [
     line = f"| {f} | {r} | " + " | ".join(out) + " |"
     lines.append(line)
     print(line)
-open("reports/smell_reach.md", "w").write(
+open(
+    "reports/smell_reach.md" if len(sys.argv) == 1 else f"reports/{sys.argv[1]}/smell_reach.md", "w"
+).write(
     "\n".join(
         [
             "# Smell reach",
