@@ -108,13 +108,15 @@ def main():
     p.add_argument("--seeds", type=int, default=2)
     p.add_argument("--workers", type=int, default=os.cpu_count())
     p.add_argument("--out", default="reports/chemotaxis")
+    p.add_argument("--skip", nargs="*", default=[], help="run names to leave out")
     args = p.parse_args()
 
     for var in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS"):
         os.environ[var] = "1"
     # seed by seed across graphs, so an interrupted study leaves balanced results
     order = itertools.product(range(args.seeds), args.conditions, args.glutamate)
-    jobs = [(args.config, c, g, s, args.out) for s, c, g in order]
+    jobs = [(args.config, c, g, s, args.out) for s, c, g in order
+            if f"{c}_glu-{g}_seed{s}" not in args.skip]  # fmt: skip
     with ProcessPoolExecutor(args.workers) as pool:
         results = list(pool.map(run_one, jobs))
     summarise(results, Path(args.out))

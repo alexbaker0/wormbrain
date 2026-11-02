@@ -80,3 +80,28 @@ def test_patch_world_training_runs_end_to_end(tmp_path):
     patch = res["test"]["patches"]["brain"]
     assert {"eaten_mean", "found_food"} <= set(patch) and "reached_1mm" not in patch
     assert "reached_1mm" in res["test"]["gaussian"]["brain"]
+
+
+def test_cmaes_resumes_from_checkpoint_exactly(tmp_path):
+    from wormbrain.train import cmaes
+
+    def make_objective():
+        gen = {"k": 0}
+
+        def f(X):
+            rng = np.random.default_rng(gen["k"])  # per-generation noise, like new arenas
+            gen["k"] += 1
+            return -((X - 1.0) ** 2).sum(1) + rng.normal(0, 0.01, len(X))
+
+        return f, gen
+
+    f, _ = make_objective()
+    full = cmaes(f, np.zeros(3), popsize=6, generations=6, seed=0, verbose=False)
+    ck = tmp_path / "ck.pkl"
+    f1, _ = make_objective()
+    cmaes(f1, np.zeros(3), popsize=6, generations=3, seed=0, verbose=False, checkpoint=ck)
+    f2, gen2 = make_objective()
+    resumed = cmaes(f2, np.zeros(3), popsize=6, generations=6, seed=0, verbose=False,
+                    checkpoint=ck, on_resume=lambda k: gen2.update(k=k))  # fmt: skip
+    assert [h["best"] for h in resumed["history"]] == [h["best"] for h in full["history"]]
+    assert np.allclose(resumed["best_x"], full["best_x"])

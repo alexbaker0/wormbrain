@@ -8,6 +8,7 @@ population is simulated as one batch of worms.
 from __future__ import annotations
 
 import json
+import pickle
 import time
 from collections.abc import Callable
 from pathlib import Path
@@ -25,13 +26,33 @@ def cmaes(
     seed: int = 0,
     log_path: str | Path | None = None,
     verbose: bool = True,
+    checkpoint: str | Path | None = None,
+    on_resume: Callable[[int], None] | None = None,
 ) -> dict:
+    """Maximise ``objective`` with CMA-ES.
+
+    With ``checkpoint``, the optimiser state is saved after every generation and an
+    interrupted run continues from it; ``on_resume(next_generation)`` lets the caller
+    restore its own per-generation state (e.g. which arenas to draw next).
+    """
     es = cma.CMAEvolutionStrategy(
         x0, sigma0, {"popsize": popsize, "seed": seed + 1, "verbose": -9}
     )  # cma treats seed 0 as "random", so offset it
     history, best_x, best_f = [], x0.copy(), -np.inf
-    start = time.time()
-    for gen in range(generations):
+    first = 0
+    if checkpoint and Path(checkpoint).exists():
+        state = pickle.loads(Path(checkpoint).read_bytes())
+        es, history, best_x, best_f = (
+            state["es"],
+            state["history"],
+            state["best_x"],
+            state["best_f"],
+        )
+        first = len(history)
+        if on_resume:
+            on_resume(first)
+    start = time.time() - (history[-1]["seconds"] if history else 0.0)
+    for gen in range(first, generations):
         X = np.array(es.ask())
         f = np.asarray(objective(X), dtype=float)
         es.tell(list(X), list(-f))
@@ -51,4 +72,9 @@ def cmaes(
             print(json.dumps(row), flush=True)
         if log_path:
             Path(log_path).write_text(json.dumps(history))
+        if checkpoint:
+            tmp = Path(str(checkpoint) + ".tmp")
+            state = {"es": es, "history": history, "best_x": best_x, "best_f": best_f}
+            tmp.write_bytes(pickle.dumps(state))
+            tmp.replace(checkpoint)
     return {"best_x": best_x, "best_f": best_f, "history": history, "mean_x": es.mean.copy()}

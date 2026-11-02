@@ -130,7 +130,8 @@ def stage1(cfg: dict, verbose: bool = False) -> dict:
                             activation=cfg.get("activation", "tanh"))  # fmt: skip
 
 
-def stage2(cfg: dict, x_start: np.ndarray, verbose: bool = False, log_path=None) -> dict:
+def stage2(cfg: dict, x_start: np.ndarray, verbose: bool = False, log_path=None,
+           checkpoint=None) -> dict:  # fmt: skip
     brain, body, _ = setup(cfg["condition"], cfg["seed"], cfg["glutamate"], True,
                            cfg.get("bounded", True), cfg.get("activation", "tanh"),
                            cfg.get("muscle_dv", False), cfg.get("dv_tie", False))  # fmt: skip
@@ -150,7 +151,8 @@ def stage2(cfg: dict, x_start: np.ndarray, verbose: bool = False, log_path=None)
 
     res = cmaes(objective, x_start, sigma0=s2["sigma0"], popsize=s2["popsize"],
                 generations=s2["generations"], seed=cfg["seed"], log_path=log_path,
-                verbose=verbose)  # fmt: skip
+                verbose=verbose, checkpoint=checkpoint,
+                on_resume=lambda k: gen.update(k=k))  # fmt: skip
 
     # choose between the best candidate seen and the final mean on a validation set
     val = cfg["evaluation"]
@@ -267,7 +269,8 @@ def train_and_evaluate(cfg: dict, out_dir: Path, verbose: bool = False) -> dict:
     if s2_path.exists():
         s2 = json.loads(s2_path.read_text())
     else:
-        s2 = stage2(cfg, np.array(s1["best_x"]), verbose, log_path=out_dir / "stage2.log.json")
+        s2 = stage2(cfg, np.array(s1["best_x"]), verbose, log_path=out_dir / "stage2.log.json",
+                    checkpoint=out_dir / "stage2.ckpt.pkl")  # fmt: skip
         s2_path.write_text(json.dumps(s2))
     result = {
         "run": run_name(cfg),
