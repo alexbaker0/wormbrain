@@ -432,6 +432,78 @@
   "patch_power": 0.42051077133585635
  },
  {
+  "scenario": "H. patch world v2 + back/belly offset",
+  "run": "real_glu-excitatory_seed1",
+  "reached": 0.1875,
+  "median_time_to_food_s": Infinity,
+  "time_at_food": 0.019057922769640478,
+  "climbed": 0.375,
+  "moving_food_reached": 0.0625,
+  "flat_curvature_deg_mm": 10.051882242793177,
+  "patch_food": 3.142318749999815,
+  "patch_power": 0.3494737284668041
+ },
+ {
+  "scenario": "H. patch world v2 + back/belly offset",
+  "run": "real_glu-inhibitory_seed0",
+  "reached": 0.0625,
+  "median_time_to_food_s": Infinity,
+  "time_at_food": 0.009320905459387484,
+  "climbed": 0.28125,
+  "moving_food_reached": 0.03125,
+  "flat_curvature_deg_mm": 5.932557455426666,
+  "patch_food": 0.48136874999999957,
+  "patch_power": 0.08942896809190608
+ },
+ {
+  "scenario": "H. patch world v2 + back/belly offset",
+  "run": "real_glu-inhibitory_seed1",
+  "reached": 0.0625,
+  "median_time_to_food_s": Infinity,
+  "time_at_food": 0.004452396804260985,
+  "climbed": 0.21875,
+  "moving_food_reached": 0.03125,
+  "flat_curvature_deg_mm": 12.40176134934563,
+  "patch_food": 0.5549437500000032,
+  "patch_power": 0.4203645788324444
+ },
+ {
+  "scenario": "I. patch world v2 + offset + tied D/V classes",
+  "run": "real_glu-excitatory_seed1",
+  "reached": 0.0,
+  "median_time_to_food_s": Infinity,
+  "time_at_food": 0.0,
+  "climbed": 0.4375,
+  "moving_food_reached": 0.0,
+  "flat_curvature_deg_mm": 511.615278361222,
+  "patch_food": 0.0,
+  "patch_power": 1.5717163150676197e-10
+ },
+ {
+  "scenario": "I. patch world v2 + offset + tied D/V classes",
+  "run": "real_glu-inhibitory_seed0",
+  "reached": 0.0625,
+  "median_time_to_food_s": Infinity,
+  "time_at_food": 0.012358521970705725,
+  "climbed": 0.375,
+  "moving_food_reached": 0.03125,
+  "flat_curvature_deg_mm": 0.26622095309827426,
+  "patch_food": 0.5228062499999955,
+  "patch_power": 0.096278964585461
+ },
+ {
+  "scenario": "I. patch world v2 + offset + tied D/V classes",
+  "run": "real_glu-inhibitory_seed1",
+  "reached": 0.46875,
+  "median_time_to_food_s": Infinity,
+  "time_at_food": 0.06170938748335553,
+  "climbed": 0.90625,
+  "moving_food_reached": 0.0625,
+  "flat_curvature_deg_mm": 154.32371361749333,
+  "patch_food": 1.8973249999998827,
+  "patch_power": 0.2532235608901506
+ },
+ {
   "scenario": "hand-coded forager",
   "run": "",
   "reached": 0.0,
