@@ -345,6 +345,32 @@ crawling scores +0.35 while circling scores −0.01 (it finds nothing)
   - The patch-trained brains also lost the ability to climb towards a single broad food
     source.
 
+### Balancing back and belly muscles
+
+Back and belly muscles are driven by different neuron classes (DA/DB/DD versus VA/VB/VD)
+with independent parameters. Published neuromechanical models (Boyle, Berri & Cohen 2012;
+Izquierdo & Beer 2018; Olivares et al. 2018) use matched dorsal/ventral units, so a
+balanced crawl is the default there.
+
+- **One offset fixes circling in already-trained brains**
+  ([`reports/dv_offset/SWEEP.md`](reports/dv_offset/SWEEP.md)). Adding one number to every
+  dorsal muscle's input and subtracting it from every ventral one (`muscle_dv`) straightens
+  every circler, with nothing else retrained. For example, a milestone-6 brain goes from
+  493°/mm to 0.9°/mm, and its net progress rises from 0.09 to 0.21 mm/s. So the circling
+  was a constant dorsal/ventral imbalance.
+- **Retraining with the offset** ([`reports/patches_dv/FINDINGS.md`](reports/patches_dv/FINDINGS.md)),
+  and with the offset plus tied classes (VA=DA, VB=DB, VD=DD, `dv_tie`;
+  [`reports/patches_tied/FINDINGS.md`](reports/patches_tied/FINDINGS.md)). Same world, start
+  brains and 100 generations as patch world v2; three runs each.
+  - Food eaten per run: offset 3.06 / 0.44 / 0.65, offset + tied 0.00 / 0.43 / 2.39, against
+    v2 2.75 / 0.59 / 1.98.
+  - The best patch-trained brain so far comes from the offset run.
+  - No variant is reliably better.
+- **Straightness and foraging did not arrive together.** The brains that eat well meander
+  and loop on food (area-restricted search), without one-way circling. The brains that
+  became straight crawl in wide blind arcs and eat little. In this world, steering by smell
+  pays far more than straightness, so training goes for steering first.
+
 ## Limitations (so far)
 
 - Synapse signs are inferred from transmitter identity; glutamate's sign is a
