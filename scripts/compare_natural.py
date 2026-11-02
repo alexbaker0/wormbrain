@@ -150,7 +150,8 @@ def main():
             f"| {r['climbed']:.0%} | {r['moving_food_reached']:.0%} "
             f"| {r['flat_curvature_deg_mm']:.0f} | {r['patch_food']:.2f} |"
         )
-    lines += ["", "## Mean over the runs of each scenario (3 for H and I: excitatory seed 0 left out)", "",
+    lines += ["", "## Mean over the runs of each scenario"
+              " (3 for H and I: excitatory seed 0 left out)", "",
               "| scenario | reached food | time at food | moving food re-reached "
               "| flat-field turning (°/mm) | patch world: food eaten |",
               "|---|---|---|---|---|---|"]  # fmt: skip
