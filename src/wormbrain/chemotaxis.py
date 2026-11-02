@@ -121,13 +121,18 @@ def stage1(cfg: dict, verbose: bool = False) -> dict:
         r = json.loads(cached.read_text())
         same = (r["generations"], r["popsize"], r["sigma0"]) == (
             s1["generations"], s1["popsize"], s1["sigma0"])  # fmt: skip
-        model = (r["adaptation"], r.get("bounded", False), r.get("activation", "sigmoid"))
-        if same and model == (True, cfg.get("bounded", True), cfg.get("activation", "tanh")):
+        model = (r["adaptation"], r.get("bounded", False), r.get("activation", "sigmoid"),
+                 r.get("muscle_dv", False), r.get("dv_tie", False))  # fmt: skip
+        want = (True, cfg.get("bounded", True), cfg.get("activation", "tanh"),
+                cfg.get("muscle_dv", False), cfg.get("dv_tie", False))  # fmt: skip
+        if same and model == want:
             return r | {"reused_from": str(cached)}
     return train_locomotion(cfg["condition"], cfg["seed"], cfg["glutamate"], True,
                             s1["generations"], s1["popsize"], s1["sigma0"],
                             verbose=verbose, bounded=cfg.get("bounded", True),
-                            activation=cfg.get("activation", "tanh"))  # fmt: skip
+                            activation=cfg.get("activation", "tanh"),
+                            muscle_dv=cfg.get("muscle_dv", False),
+                            dv_tie=cfg.get("dv_tie", False))  # fmt: skip
 
 
 def stage2(cfg: dict, x_start: np.ndarray, verbose: bool = False, log_path=None,
@@ -237,7 +242,8 @@ def _same_stage1(cfg: dict, other: Path) -> bool:
     if not (other / "stage1.json").exists() or not (other / "config.yaml").exists():
         return False
     o = yaml.safe_load((other / "config.yaml").read_text())
-    keys = ("condition", "glutamate", "seed", "bounded", "activation", "stage1")
+    keys = ("condition", "glutamate", "seed", "bounded", "activation", "stage1",
+            "muscle_dv", "dv_tie")  # fmt: skip
     return all(o.get(k) == cfg.get(k) for k in keys)
 
 

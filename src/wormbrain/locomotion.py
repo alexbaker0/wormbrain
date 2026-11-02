@@ -115,8 +115,11 @@ def train_locomotion(
     verbose: bool = False,
     bounded: bool = True,
     activation: str = "tanh",
+    muscle_dv: bool = False,
+    dv_tie: bool = False,
 ) -> dict:
-    brain, body, cfg = setup(condition, seed, glutamate, adaptation, bounded, activation)
+    brain, body, cfg = setup(condition, seed, glutamate, adaptation, bounded, activation,
+                             muscle_dv, dv_tie)  # fmt: skip
 
     def objective(X):
         n = len(X)
@@ -135,6 +138,8 @@ def train_locomotion(
         "adaptation": adaptation,
         "bounded": brain.cfg.bounded,
         "activation": brain.cfg.activation,
+        "muscle_dv": brain.cfg.muscle_dv,
+        "dv_tie": brain.cfg.dv_tie,
         "n_params": brain.n_params,
         "generations": generations,
         "popsize": popsize,
