@@ -38,7 +38,7 @@ train() {
 }
 
 # let any earlier queue finish its common tests first
-while pgrep -f "scripts/queue_curriculum.sh" > /dev/null; do sleep 30; done
+[ -n "${NO_WAIT:-}" ] || while pgrep -f "scripts/queue_curriculum.sh" > /dev/null; do sleep 30; done
 train curr_sym_grad_more
 train curr_sym_patch_more
 echo "$(date -u +%FT%TZ) analyses"
