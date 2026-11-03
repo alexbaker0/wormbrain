@@ -1,0 +1,48 @@
+# Same as curr_sym_patch.yaml, starting from curr_sym_grad_more (wiring-control study).
+# Curriculum, step 2 of 2: the brains from curr_sym_grad.yaml (crawl, then steer up a
+# broad gradient) go into patch world v2: wrap-around arena, 12-minute lives, slow eating;
+# reward = food eaten - energy, nothing about how to move. 100 generations.
+
+condition: real
+glutamate: excitatory
+seed: 0
+bounded: true
+activation: tanh
+muscle_dv: true
+dv_tie: true
+head_proprio: true
+
+env: [configs/env.yaml]
+env_overrides:
+  field: {type: patches, half_size: 25.0, n_patches: 24, sigma: 1.5, capacity: 1.0,
+          eat_radius: 1.0, eat_rate: 0.03, min_spacing: 6.0, periodic: true}
+  start: {half_size: 15.0, clearance: 4.0}
+  episode: {duration: 720.0, dt: 0.02}
+  reward: {type: eaten, energy_weight: 0.2}
+
+init_from: reports/curr_sym_grad_more/runs
+
+stage1:
+  generations: 100
+  popsize: 24
+  sigma0: 0.5
+
+stage2:
+  generations: 100
+  popsize: 24
+  sigma0: 0.2
+  n_starts: 4
+
+evaluation:
+  n_starts: 32
+  validation_seed: 500
+  test_seed: 1000
+  arenas:
+    patches: {env: [configs/env.yaml]}
+    gaussian:
+      env: [configs/env.yaml]
+      overrides:
+        field: {type: gaussian, peak: [0.0, 0.0], sigma: 4.0, amplitude: 1.0}
+        start: {distance: [4.0, 8.0]}
+        episode: {duration: 90.0, dt: 0.02}
+        reward: {type: concentration_gain, final_fraction: 1.0, energy_weight: 0.05}
