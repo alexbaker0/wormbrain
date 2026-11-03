@@ -396,6 +396,19 @@ With the symmetric body ([`reports/curr_sym_patch/FINDINGS.md`](reports/curr_sym
 - The usual body with the same curriculum reached a mean of 2.02 patches (2 of 4 brains
   good).
 
+**Does the real wiring matter here?**
+([`reports/curriculum_controls/FINDINGS.md`](reports/curriculum_controls/FINDINGS.md))
+We ran the same curriculum with rewired and random wiring (4 runs each), plus 4 more
+real-wiring runs. Exploratory results:
+
+- **Food eaten:** no significant difference. Real 3.22 (8 runs), rewired 4.52, random 1.51.
+  Real − rewired: −1.30, 95% CI −2.92 to +0.44.
+- **Straightness:** real-wiring brains crawl much straighter on an empty field. Median
+  turning is 7.8°/mm, against 139 for rewired and 239 for random (p ≈ 0.07 for both). The
+  good rewired foragers circle tightly near food. The good real-wiring foragers make
+  straight runs between patches.
+- **Next:** this lead needs a larger, pre-registered test.
+
 ## Limitations (so far)
 
 - Synapse signs are inferred from transmitter identity; glutamate's sign is a
