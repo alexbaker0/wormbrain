@@ -15,7 +15,7 @@ from .body import Body, BodyParams
 from .brain import Brain, BrainConfig, BrainController
 from .connectome import build_connectome, load_config
 from .controls import make_condition
-from .env import Field
+from .env import make_field
 
 
 def _coo(m: np.ndarray) -> dict:
@@ -103,15 +103,19 @@ def reference_run(run: dict, body_cfg: dict, field_cfg: dict, head, heading, ste
     """Step-by-step Python run, in exactly the order ``env.run_episode`` uses."""
     brain = build_brain(run, lesion)
     body = Body(BodyParams(**body_cfg))
-    field = Field(field_cfg)
+    field = make_field(field_cfg)
     ctrl = BrainController(brain, np.array(run["x"])[None])
     state = body.reset(np.array([head], float), np.array([heading], float))
     ctrl.reset(1)
-    out = {"step": [], "head": [], "theta0": [], "kappa": [], "v": []}
+    out = {"step": [], "head": [], "theta0": [], "kappa": [], "v": [], "eaten": []}
+    eaten = 0.0
     for k in range(1, steps + 1):
         obs = {"t": (k - 1) * dt, "conc": field.conc(state.head), "kappa": state.kappa}
         body.step(state, ctrl.step(obs, dt), dt)
+        if hasattr(field, "consume"):
+            eaten += float(field.consume(state.head, dt)[0])
         if k % every == 0:
+            out["eaten"].append(eaten)
             out["step"].append(k)
             out["head"].append(state.head[0].tolist())
             out["theta0"].append(float(state.theta0[0]))

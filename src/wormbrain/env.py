@@ -91,16 +91,24 @@ class PatchField:
         self.eat_rate = cfg.get("eat_rate", 0.1)
         self.min_spacing = cfg.get("min_spacing", 6.0)
         self.periodic = bool(cfg.get("periodic", False))
-        self.relayout(cfg.get("seed", 0))
+        if "xy" in cfg:  # a given layout
+            self.xy = np.array(cfg["xy"], float)
+            self.k = len(self.xy)
+        else:
+            self.relayout(cfg.get("seed", 0))
         self.reset_worms(1)
 
     def relayout(self, seed: int) -> None:
         rng = np.random.default_rng(seed)
         xy: list[np.ndarray] = []
-        while len(xy) < self.k:
+        for _ in range(100_000):
+            if len(xy) == self.k:
+                break
             p = rng.uniform(-self.half, self.half, 2)
             if all(np.linalg.norm(self._wrap(p - q)) >= self.min_spacing for q in xy):
                 xy.append(p)
+        if len(xy) < self.k:
+            raise ValueError(f"cannot place {self.k} patches {self.min_spacing} mm apart")
         self.xy = np.array(xy)
 
     def _wrap(self, d: np.ndarray) -> np.ndarray:

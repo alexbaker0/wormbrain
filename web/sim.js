@@ -17,6 +17,37 @@ export class Field {
   }
 }
 
+// Patch world (env.PatchField): scattered food patches that are eaten up; the smell of a
+// patch fades with what is left. periodic: the square arena repeats in every direction.
+export class PatchField {
+  constructor({ xy, half = 25, sigma = 1.5, capacity = 1, eatRadius = 1, eatRate = 0.03,
+                periodic = true }) {
+    Object.assign(this, { half, sigma, capacity, eatRadius, eatRate, periodic });
+    this.xy = xy.map((p) => [...p]);
+    this.left = this.xy.map(() => capacity);
+  }
+  wrap(d) { return this.periodic ? ((d + this.half) % (2 * this.half) + 2 * this.half) % (2 * this.half) - this.half : d; }
+  conc(x, y) {
+    let c = 0;
+    this.xy.forEach(([px, py], k) => {
+      const dx = this.wrap(x - px), dy = this.wrap(y - py);
+      c += (this.left[k] / this.capacity) * Math.exp(-(dx ** 2 + dy ** 2) / (2 * this.sigma ** 2));
+    });
+    return c;
+  }
+  consume(x, y, dt) {  // the head eats from any patch within eatRadius; returns the amount eaten
+    let eaten = 0;
+    this.xy.forEach(([px, py], k) => {
+      const dx = this.wrap(x - px), dy = this.wrap(y - py);
+      if (dx ** 2 + dy ** 2 < this.eatRadius ** 2) {
+        const bite = Math.min(this.left[k], this.eatRate * dt);
+        this.left[k] -= bite; eaten += bite;
+      }
+    });
+    return eaten;
+  }
+}
+
 export class Brain {
   constructor(m, lesion = []) {
     this.m = m;
@@ -188,12 +219,13 @@ export class Worm {
   reset(head, heading) {
     this.body.reset(head, heading);
     this.brain.reset();
-    this.k = 0;
+    this.k = 0; this.eaten = 0;
   }
   step() {
     const b = this.body, conc = this.field.conc(b.head[0], b.head[1]);
     const muscle = this.brain.step(conc, b.kappa, this.dt);
     b.step(muscle, this.dt);
+    if (this.field.consume) this.eaten += this.field.consume(b.head[0], b.head[1], this.dt);
     this.k += 1;
     return conc;
   }
