@@ -371,6 +371,31 @@ balanced crawl is the default there.
   became straight crawl in wide blind arcs and eat little. In this world, steering by smell
   pays far more than straightness, so training goes for steering first.
 
+### Curriculum: straight runs between patches, from food and energy alone
+
+Diagnosis ([`reports/steering_probe.md`](reports/steering_probe.md),
+[`reports/smell_reach.md`](reports/smell_reach.md)): brains trained only in the patch world
+were blind. The smell signal died out before reaching the head motor neurons, because
+sparse food gives too little reward for a weak steering response. And SMD/RMD could not
+sense head bending, so they could not steer by the head's phase.
+
+Two changes followed:
+
+- **Head proprioception** (`head_proprio`): dorsal and ventral SMD and RMD neurons sense head
+  bending, as real SMDs do.
+- **A curriculum:** crawl, then steer up a broad gradient, then the patch world with reward
+  = food eaten − energy.
+
+With the symmetric body ([`reports/curr_sym_patch/FINDINGS.md`](reports/curr_sym_patch/FINDINGS.md)):
+
+- 3 of 4 brains became strong foragers (5.65, 4.39 and 5.09 patches in 12 minutes, against
+  1.89 for hand-coded steering).
+- The best brain crawls in straight runs from patch to patch and pauses to eat. It turns
+  only 2.3°/mm on an empty field and has a steering response as strong as the hand-coded
+  steerer.
+- The usual body with the same curriculum reached a mean of 2.02 patches (2 of 4 brains
+  good).
+
 ## Limitations (so far)
 
 - Synapse signs are inferred from transmitter identity; glutamate's sign is a
