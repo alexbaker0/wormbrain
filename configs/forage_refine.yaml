@@ -1,0 +1,53 @@
+# Ensemble round, phase B: the best brains of phase A (forage_ens.yaml, chosen by
+# validation score) keep training on the same objective, food eaten - energy, in a world
+# where stopping on food can pay: the food is smaller than a loop (eating radius 0.5 mm)
+# and energy has a real price (weight 1.0). These brains already forage, so the higher
+# energy price cannot trap them into never moving.
+
+condition: real
+glutamate: excitatory
+seed: 0
+bounded: true
+activation: tanh
+muscle_dv: true
+dv_tie: true
+head_proprio: true
+food_sense: true
+
+init_from: reports/forage_ens/runs
+
+env: [configs/env.yaml]
+env_overrides:
+  field: {type: forage, shape: cone, reach: 20.0, steepness: [0.3, 3.0], capacity: 1.0,
+          eat_radius: 0.5, eat_rate: 0.05, respawn: [5.0, 9.0]}
+  start: {}
+  episode: {duration: 240.0, dt: 0.02}
+  reward: {type: forage, approach_weight: 1.0, energy_weight: 1.0}
+
+stage1:
+  generations: 100
+  popsize: 24
+  sigma0: 0.5
+  objective: gait
+  target_speed: 0.22
+  duration: 60.0
+
+stage2:
+  generations: 90
+  popsize: 24
+  sigma0: 0.15
+  n_starts: 8
+
+evaluation:
+  n_starts: 32
+  validation_seed: 500
+  test_seed: 1000
+  arenas:
+    forage: {env: [configs/env.yaml]}
+    gaussian:
+      env: [configs/env.yaml]
+      overrides:
+        field: {type: gaussian, peak: [0.0, 0.0], sigma: 4.0, amplitude: 1.0}
+        start: {distance: [4.0, 8.0]}
+        episode: {duration: 90.0, dt: 0.02}
+        reward: {type: concentration_gain, final_fraction: 1.0, energy_weight: 0.05}

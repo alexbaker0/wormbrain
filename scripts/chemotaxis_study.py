@@ -109,14 +109,27 @@ def main():
     p.add_argument("--workers", type=int, default=os.cpu_count())
     p.add_argument("--out", default="reports/chemotaxis")
     p.add_argument("--skip", nargs="*", default=[], help="run names to leave out")
+    p.add_argument("--top", type=int, default=0, help="only the best K runs of --rank-by")
+    p.add_argument("--rank-by", default=None, help="config name whose finished runs are "
+                   "ranked by validation reward (never the test set)")  # fmt: skip
     args = p.parse_args()
+    keep = None
+    if args.top:
+        done = [d for d in (RUNS / args.rank_by).iterdir() if (d / "stage2.json").exists()]
+        val = {
+            d.name: max(json.loads((d / "stage2.json").read_text())["validation_reward"])
+            for d in done
+        }
+        keep = sorted(val, key=val.get, reverse=True)[: args.top]
+        print("kept by validation reward:", {k: round(val[k], 3) for k in keep}, flush=True)
 
     for var in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS"):
         os.environ[var] = "1"
     # seed by seed across graphs, so an interrupted study leaves balanced results
     order = itertools.product(range(args.seeds), args.conditions, args.glutamate)
     jobs = [(args.config, c, g, s, args.out) for s, c, g in order
-            if f"{c}_glu-{g}_seed{s}" not in args.skip]  # fmt: skip
+            if f"{c}_glu-{g}_seed{s}" not in args.skip
+            and (keep is None or f"{c}_glu-{g}_seed{s}" in keep)]  # fmt: skip
     with ProcessPoolExecutor(args.workers) as pool:
         results = list(pool.map(run_one, jobs))
     summarise(results, Path(args.out))

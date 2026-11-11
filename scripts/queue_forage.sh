@@ -40,7 +40,8 @@ card() {
 
 train forage 4
 card forage
-(train forage_patch 2; card forage_patch) &
-(train forage_nosense 2; card forage_nosense) &
-wait
+# The no-food-sense ablation was stopped: cutting the sense in the trained brains changed
+# nothing (reports/forage/dwell.md), which already answers its question.
+train forage_patch 4
+card forage_patch
 echo "$(date -u +%FT%TZ) done"

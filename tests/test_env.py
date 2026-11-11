@@ -227,3 +227,18 @@ def test_forage_reward_has_no_freeze_trap():
     # never the easy way out before steering has been learned
     assert scores["frozen"] == pytest.approx(0.0, abs=1e-9)
     assert scores["blind"] > 0.05
+
+
+def test_forage_cone_smell_is_linear_with_random_height():
+    from wormbrain.env import ForageField
+
+    cfg = {"type": "forage", "shape": "cone", "reach": 20.0, "steepness": [0.3, 3.0]}
+    f = ForageField(cfg)
+    f.starts({}, 4, 7)
+    f.reset_worms(4)
+    assert np.all((f.height >= 0.3) & (f.height <= 3.0)) and np.ptp(f.height) > 0
+    at, half = f.conc(f.xy), f.conc(f.xy + np.array([10.0, 0.0]))
+    assert np.allclose(at, f.height) and np.allclose(half, f.height / 2)
+    assert np.allclose(f.conc(f.xy + np.array([25.0, 0.0])), 0.0)
+    g = ForageField({"type": "forage"})  # default stays Gaussian with unit peak
+    assert np.allclose(g.conc(g.xy), 1.0)

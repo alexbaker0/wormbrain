@@ -1,7 +1,7 @@
 """Do the foraging brains use their food-contact sense? Speed on food vs off it, and what
 happens when the sense is cut.
 
-    uv run python scripts/dwell_check.py reports/forage
+    uv run python scripts/dwell_check.py reports/forage [config, default configs/forage.yaml]
 
 Foraging world of configs/forage.yaml, 32 held-out starts, 240 s. "speed" is the body
 centre's path speed. "sense cut" runs the same brain with the food-contact signal held at
@@ -44,8 +44,8 @@ def measure(make, cfg, body, n=32, cut=False):
     }
 
 
-def main(folder):
-    cfg = load_run_config("configs/forage.yaml")
+def main(folder, config="configs/forage.yaml"):
+    cfg = load_run_config(config)
     env = env_config(cfg["env"], cfg["env_overrides"])
     body = make_body(env["body"])
     lines = [
@@ -73,4 +73,4 @@ def main(folder):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1])
+    main(*sys.argv[1:3])

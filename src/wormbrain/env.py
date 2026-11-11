@@ -160,7 +160,10 @@ class ForageField:
     one appears ``respawn`` mm away in a random direction.
 
     The food is a Gaussian odour source (width ``sigma`` mm) whose smell fades with what
-    is left. A worm whose head is within ``eat_radius`` mm eats ``eat_rate`` units per
+    is left. With ``shape: cone`` the smell instead falls linearly to zero at ``reach`` mm
+    and each food's height is drawn log-uniformly from ``steepness`` (Izquierdo & Lockery
+    2010 train on cones of random steepness, since a Gaussian ties steepness to distance).
+    A worm whose head is within ``eat_radius`` mm eats ``eat_rate`` units per
     second; a source holds ``capacity``. Every worm has its own food, and worms that share
     a start index get the same sequence of food offsets, so candidates in one generation
     face identical worlds (common random numbers). ``closest`` tracks, for the current
@@ -177,6 +180,9 @@ class ForageField:
         self.eat_rate = cfg.get("eat_rate", 0.05)
         self.respawn = tuple(cfg.get("respawn", (5.0, 9.0)))
         self.max_foods = cfg.get("max_foods", 64)
+        self.shape = cfg.get("shape", "gaussian")  # or "cone": linear fall-off to ``reach``
+        self.reach = cfg.get("reach", 20.0)
+        self.steepness = tuple(cfg.get("steepness", (1.0, 1.0)))  # cone height, log-uniform
         self.amp = np.array([1.0])
         self.starts({}, 1, cfg.get("seed", 0))
         self.reset_worms(1)
@@ -192,6 +198,8 @@ class ForageField:
         r = rng.uniform(*self.respawn, (n, self.max_foods))
         a = rng.uniform(0, 2 * np.pi, (n, self.max_foods))
         self.offsets = r[..., None] * np.stack([np.cos(a), np.sin(a)], axis=-1)
+        lo, hi = np.log(self.steepness)
+        self.heights = np.exp(rng.uniform(lo, hi, (n, self.max_foods)))
         return np.zeros((n, 2)), heading
 
     def reset_worms(self, n: int) -> None:
@@ -201,10 +209,15 @@ class ForageField:
         self.d0 = np.linalg.norm(self.xy, axis=1)
         self.left = np.full(n, self.capacity)
         self.closest = np.zeros(n)
+        self.height = self.heights[self.start_of, 0].copy()
 
     def conc(self, pos) -> np.ndarray:
         d2 = ((np.asarray(pos, dtype=float) - self.xy) ** 2).sum(-1)
-        return self.left / self.capacity * np.exp(-d2 / (2 * self.sigma**2))
+        if self.shape == "cone":
+            smell = self.height * np.maximum(0.0, 1.0 - np.sqrt(d2) / self.reach)
+        else:
+            smell = np.exp(-d2 / (2 * self.sigma**2))
+        return self.left / self.capacity * smell
 
     def contact(self, head: np.ndarray) -> np.ndarray:
         """1 where the head is on the food, else 0 (per worm)."""
@@ -223,6 +236,7 @@ class ForageField:
             self.d0[done] = np.linalg.norm(nxt, axis=1)
             self.left[done] = self.capacity
             self.closest[done] = 0.0
+            self.height[done] = self.heights[self.start_of[done], self.count[done] % self.max_foods]
         return bite
 
 
