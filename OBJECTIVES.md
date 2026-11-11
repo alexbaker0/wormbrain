@@ -5,9 +5,11 @@ objectives we now use, and what they produced. Status: the first foraging run is
 two follow-up runs (patch world, and the same training without the food-contact sense) are
 still running and will be added here.
 
-**Caveat on sources.** The paper sites were not reachable from the training machine, so the
-literature points below come from search summaries and abstracts, not from reading the full
-texts. Treat specific numbers as approximate until checked against the papers.
+**Sources.** Four modelling papers have now been read in full (Izquierdo & Lockery 2010;
+Izquierdo & Beer 2013; Izquierdo & Beer 2018; Olivares, Izquierdo & Beer 2021); section 2a
+lists what they say. The behavioural papers (Iino & Yoshida, Pierce-Shimomura, Sawin,
+Fang-Yen, Boyle) are still known only from search summaries and abstracts, so treat their
+numbers as approximate.
 
 ## 1. What went wrong before
 
@@ -49,6 +51,31 @@ symmetric body) and the missing sense of head bending (now head proprioception).
   gradient methods and mostly targets locomotion and simple taxis.
 
 We use these behaviours as a **yardstick, not as training targets**.
+
+## 2a. Checked against the full papers
+
+| Point | What the papers do | What we do | Verdict |
+|---|---|---|---|
+| Crawl fitness | 1 − \|v − 0.22\| / 0.22, v = net displacement of the body centre over 50 s (2018 eq. 2.6; 2021 eq. 5) | Same form, 0.2 mm/s, 60 s | Matches; 0.22 is the published value |
+| Frequency | 2021 also rewards 0.44 Hz in the isolated motor unit; 2018 leaves it free and gets 0.34–0.43 Hz | Free; we get 0.28–0.44 Hz | Fine |
+| Wavelength | Not in the fitness. Checked afterwards; real range 0.4–0.9 body lengths; 2021 discards solutions outside it | Not in the fitness; ours are 1.2–1.7 | Ours are too long; they filter, we have not |
+| Chemotaxis fitness | CI = 1 − time-averaged distance / start distance, negatives set to 0 (2010 eq. 7) | Scorecard CI is the same idea; training uses food eaten | Matches as a yardstick |
+| Steering never rewarded | Stated explicitly: weathervane-like turning "is an emergent property" (2013) | Same | Matches |
+| Smell input | ON and OFF cells see a time derivative (recent average minus earlier average), rectified | ASEL ON / ASER OFF, concentration minus running average, rectified | Matches |
+| Dorsal/ventral symmetry | Parameters symmetric across the midline (2013) | Symmetric body option | Matches |
+| Gradient shape | **Conical, with random steepness**, because in a Gaussian "local steepness is systematically related to distance" and gives unrealistic strategies; Gaussian used only for testing | Gaussian in training | **Difference** |
+| Assays per fitness value | **50** random starts (2010) | 6 | **Difference**: our fitness is much noisier |
+| Runs | **100–160 seeds**, then keep the good ones | 2 seeds × 2 settings | **Difference** |
+| Stopping, dwelling | Not modelled: a point worm at a constant 0.22 mm/s with a built-in oscillator; pirouettes imposed at random, not evolved | Full body, speed free | They never faced our circling-at-food problem |
+
+Two things in the full texts change how our results should be read:
+
+1. **A seed lottery is normal in this literature.** With only 8–20 parameters, 17 of 100
+   chemotaxis runs failed outright and 27 of 100 reached CI ≥ 0.75 (2013). For crawling,
+   46 of 100 (2018) and 65% of 160 (2021) passed. They report the successful ensemble.
+   Our 2 of 4 is in line; our mistake is running 4 and expecting 4.
+2. **Their worms cannot stop or choose a speed**, so their objective says nothing about
+   behaviour at the food. Slowing on food is outside what those objectives were built for.
 
 ## 3. The new objectives
 
@@ -118,8 +145,10 @@ built, not evidence about the wiring. Options that keep the "food − energy" pr
 1. **Make food smaller than a loop** (eating radius about 0.3 mm), so staying on it needs
    slowing down.
 2. **Charge a realistic energy price**, so moving on food costs more than it gains.
-3. **Run more seeds per setting** (8+) and pick by the validation score, since half the
-   runs stall.
+3. **Follow the papers on the three differences:** many seeds with the best kept by
+   validation score, more starts per fitness evaluation, and conical gradients of random
+   steepness in training with Gaussian kept for testing.
+4. **Filter on wavelength afterwards**, as Olivares et al. do, and use 0.22 mm/s.
 
 ## 6. Limits
 
@@ -127,4 +156,4 @@ built, not evidence about the wiring. Options that keep the "food − energy" pr
 - Wavelength is unrealistic; only speed is matched.
 - The approach term is a shaping aid. It is capped at one food's worth, but it is not
   "pure" food minus energy.
-- Literature values come from summaries (see caveat above).
+- The behavioural reference values still come from summaries (see Sources above).
