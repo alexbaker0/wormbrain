@@ -18,7 +18,7 @@ init_from: reports/forage_ens/runs
 
 env: [configs/env.yaml]
 env_overrides:
-  field: {type: forage, shape: cone, reach: 20.0, steepness: [0.3, 3.0], capacity: 1.0,
+  field: {type: forage, shape: cone, reach: 10.0, steepness: [0.3, 3.0], capacity: 1.0,
           eat_radius: 0.5, eat_rate: 0.05, respawn: [5.0, 9.0]}
   start: {}
   episode: {duration: 240.0, dt: 0.02}

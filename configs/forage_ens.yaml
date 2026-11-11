@@ -3,6 +3,10 @@
 # cone of random steepness in training (Gaussian is kept for testing); gait target 0.22
 # mm/s; more starts per fitness value. Objective unchanged: food eaten - energy.
 # Phase B (forage_refine.yaml) continues the best brains.
+# The cone reaches 10 mm. A first attempt with 20 mm was stopped after 4 brains (best
+# training score 1.6 after 60 generations, none foraging): the worm senses relative
+# change, and a 20 mm cone changes by about 8% per mm at 7 mm, against 44% per mm for the
+# Gaussian used before. At 10 mm the relative change is similar to the Gaussian's.
 
 condition: real
 glutamate: excitatory
@@ -16,7 +20,7 @@ food_sense: true
 
 env: [configs/env.yaml]
 env_overrides:
-  field: {type: forage, shape: cone, reach: 20.0, steepness: [0.3, 3.0], capacity: 1.0,
+  field: {type: forage, shape: cone, reach: 10.0, steepness: [0.3, 3.0], capacity: 1.0,
           eat_radius: 1.0, eat_rate: 0.05, respawn: [5.0, 9.0]}
   start: {}
   episode: {duration: 240.0, dt: 0.02}
