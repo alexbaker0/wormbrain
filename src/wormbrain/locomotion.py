@@ -24,6 +24,23 @@ def forward_speed(ep) -> np.ndarray:
     return (ep.centroid[-1, :, 0] - ep.centroid[k, :, 0]) / (ep.t[-1] - ep.t[k])
 
 
+def gait_fitness(ep, target_speed: float = 0.2) -> np.ndarray:
+    """How well each worm matches a real worm's crawl: 1 - |v - target| / target.
+
+    ``v`` is the net speed after the start-up period: straight-line displacement of the
+    centroid divided by the time, counted as negative if the worm travels tail-first. A
+    worm that circles, wiggles on the spot or races scores low; 1 is a straight head-first
+    crawl at ``target_speed`` mm/s (about 0.2 mm/s on agar: wavelength 0.65 body lengths x
+    0.30 Hz, Fang-Yen et al. 2010). Speed matching follows Izquierdo & Beer (2018).
+    """
+    k = np.searchsorted(ep.t, SETTLE)
+    net = np.linalg.norm(ep.centroid[-1] - ep.centroid[k], axis=-1) / (ep.t[-1] - ep.t[k])
+    step = np.diff(ep.centroid[k:], axis=0)
+    axis = (ep.head - ep.centroid)[k:-1]  # points from the body's middle to the head
+    headfirst = np.sign((step * axis).sum(-1).sum(0))
+    return 1.0 - np.abs(headfirst * net - target_speed) / target_speed
+
+
 def wave_direction(kappa: np.ndarray) -> float:
     """How much of the bending travels head-to-tail, in [-1, 1].
 
@@ -74,6 +91,7 @@ def setup(
     muscle_dv: bool = False,
     dv_tie: bool = False,
     head_proprio: bool = False,
+    food_sense: bool = False,
 ):
     cfg = load_config("configs/connectome.yaml")
     if glutamate:
@@ -82,7 +100,7 @@ def setup(
     env = load_env_config("configs/env.yaml")
     brain = Brain(conn, BrainConfig(adaptation=adaptation, bounded=bounded, activation=activation,
                                     muscle_dv=muscle_dv, dv_tie=dv_tie,
-                                    head_proprio=head_proprio))  # fmt: skip
+                                    head_proprio=head_proprio, food_sense=food_sense))  # fmt: skip
     return brain, make_body(env["body"]), cfg
 
 
@@ -120,19 +138,28 @@ def train_locomotion(
     muscle_dv: bool = False,
     dv_tie: bool = False,
     head_proprio: bool = False,
+    food_sense: bool = False,
+    objective: str = "speed",
+    target_speed: float = 0.2,
+    duration: float = DURATION,
+    diagonal: bool = False,
 ) -> dict:
+    """``objective``: "speed" maximises forward speed (the original crawling stage);
+    "gait" matches a real worm's net crawling speed (see ``gait_fitness``)."""
     brain, body, cfg = setup(condition, seed, glutamate, adaptation, bounded, activation,
-                             muscle_dv, dv_tie, head_proprio)  # fmt: skip
+                             muscle_dv, dv_tie, head_proprio, food_sense)  # fmt: skip
 
-    def objective(X):
+    match_gait = objective == "gait"
+
+    def fitness(X):
         n = len(X)
         ep = run_episode(BrainController(brain, X), FLAT, np.zeros((n, 2)), np.zeros(n),
-                         duration=DURATION, body=body, dt=DT)  # fmt: skip
-        return forward_speed(ep)
+                         duration=duration, body=body, dt=DT)  # fmt: skip
+        return gait_fitness(ep, target_speed) if match_gait else forward_speed(ep)
 
-    res = cmaes(objective, brain.spec.x0(), sigma0=sigma0, popsize=popsize,
+    res = cmaes(fitness, brain.spec.x0(), sigma0=sigma0, popsize=popsize,
                 generations=generations, seed=seed, log_path=log_path,
-                verbose=verbose)  # fmt: skip
+                verbose=verbose, diagonal=diagonal)  # fmt: skip
     _, _, gait = evaluate(brain, body, res["best_x"])
     return {
         "condition": condition,
@@ -144,6 +171,11 @@ def train_locomotion(
         "muscle_dv": brain.cfg.muscle_dv,
         "dv_tie": brain.cfg.dv_tie,
         "head_proprio": brain.cfg.head_proprio,
+        "food_sense": brain.cfg.food_sense,
+        "objective": objective,
+        "target_speed": target_speed,
+        "duration": duration,
+        "diagonal": diagonal,
         "n_params": brain.n_params,
         "generations": generations,
         "popsize": popsize,

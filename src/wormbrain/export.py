@@ -30,7 +30,8 @@ def build_brain(run: dict, lesion=()) -> Brain:
     bc = BrainConfig(bounded=run.get("bounded", False), activation=run.get("activation", "sigmoid"),
                      lesion=tuple(lesion), muscle_dv=run.get("muscle_dv", False),
                      dv_tie=run.get("dv_tie", False),
-                     head_proprio=run.get("head_proprio", False))  # fmt: skip
+                     head_proprio=run.get("head_proprio", False),
+                     food_sense=run.get("food_sense", False))  # fmt: skip
     return Brain(conn, bc)
 
 

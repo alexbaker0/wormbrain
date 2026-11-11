@@ -93,6 +93,12 @@ class BrainConfig:
     # proprioceptive (Yeon et al. 2018); this lets steering depend on the head's phase.
     head_proprio: bool = False
     head_proprio_classes: tuple[str, ...] = ("SMD", "RMD")
+    # Food contact: the dopaminergic mechanosensory neurons are driven while the head
+    # touches food (1/0), with one trained gain. Real worms sense bacteria through these
+    # neurons and slow down on food (basal slowing, Sawin et al. 2000). The salt sensors
+    # only report changes, so without this the brain cannot know it is sitting on food.
+    food_sense: bool = False
+    food_classes: tuple[str, ...] = ("CEP", "ADE", "PDE")
     init: dict = field(default_factory=dict)  # overrides of ParamSpec defaults
 
 
@@ -134,6 +140,7 @@ class ParamSpec:
         bounded: bool = True,
         muscle_dv: bool = False,
         head_proprio: bool = False,
+        food_sense: bool = False,
     ):
         # name: (size, initial raw value); transforms are in Brain.decode
         self.blocks = {
@@ -154,6 +161,8 @@ class ParamSpec:
             self.blocks |= {"muscle_dv": (1, 0.0)}
         if head_proprio:
             self.blocks |= {"head_proprio_gain": (1, 0.0)}
+        if food_sense:
+            self.blocks |= {"food_gain": (1, 0.0)}
         if bounded:  # every bounded range is centred on the old starting value
             self.blocks = {k: (n, 0.0) for k, (n, _) in self.blocks.items()}
         self.blocks = {k: (n, init.get(k, v)) for k, (n, v) in self.blocks.items()}
@@ -195,6 +204,7 @@ class Brain:
             cfg.bounded,
             cfg.muscle_dv,
             cfg.head_proprio,
+            cfg.food_sense,
         )
 
         alive = np.ones(n)
@@ -213,6 +223,10 @@ class Brain:
         self.M = M * alive[:, None] * alive[None, :]
         self.gap_self = self.M.sum(0)  # each neuron's coupling to itself, implicit
 
+        self.food_idx = np.array(
+            [k for k, c in enumerate(conn.cell_class) if cfg.food_sense and c in cfg.food_classes],
+            dtype=int,
+        )
         # salt sensors
         self.on_idx = conn.index(list(cfg.salt_on))
         self.off_idx = conn.index(list(cfg.salt_off))
@@ -292,6 +306,7 @@ class Brain:
             "proprio_gain": sym(p["proprio_gain"], BOUNDS["proprio_gain"]),
             "muscle_gain": pos(p["muscle_gain"], *BOUNDS["muscle_gain"], 4.0),
             "muscle_bias": sym(p["muscle_bias"], BOUNDS["muscle_bias"]),
+            "food_gain": sym(p["food_gain"], BOUNDS["food_gain"]) if "food_gain" in p else None,
             "adapt": None,
             "adapt_tau": None,
             "muscle_dv": sym(p["muscle_dv"], BOUNDS["muscle_dv"]) if "muscle_dv" in p else None,
@@ -319,6 +334,7 @@ BOUNDS = {
     "muscle_gain": (0.5, 30.0),
     "muscle_bias": 5.0,
     "muscle_dv": 2.0,
+    "food_gain": 10.0,
     "adapt": (0.05, 5.0),
 }
 
@@ -369,6 +385,8 @@ class BrainController:
         if p["head_proprio_gain"] is not None and len(b.head_idx):
             kh = obs["kappa"] @ b.joints_to_head.T / b.kappa_max
             inp[:, b.head_idx] += p["head_proprio_gain"] * b.head_side * kh
+        if p["food_gain"] is not None and "food" in obs:
+            inp[:, b.food_idx] += p["food_gain"] * np.asarray(obs["food"])[:, None]
         return inp
 
     def step(self, obs: dict, dt: float) -> np.ndarray:

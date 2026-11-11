@@ -1,0 +1,54 @@
+# Unified foraging objective, step 2 of 3 (step 1: gait; step 3: forage_patch.yaml).
+# One objective throughout: food eaten - energy. Here the worm forages serially: one food
+# source at a time, smelled from far away (sigma 4 mm); it must reach it, stay within
+# 1 mm for 20 s to eat it, and then a new one appears 5-9 mm away. No keep-moving rule
+# and nothing about how to move. "approach" adds credit for getting closer to the food
+# not yet finished (at most one food's worth), so early training has a usable signal.
+# Symmetric body with head proprioception and food-contact sensing (dopamine neurons
+# CEP, ADE, PDE). See OBJECTIVES.md.
+
+condition: real
+glutamate: excitatory
+seed: 0
+bounded: true
+activation: tanh
+muscle_dv: true
+dv_tie: true
+head_proprio: true
+food_sense: true
+
+env: [configs/env.yaml]
+env_overrides:
+  field: {type: forage, sigma: 4.0, capacity: 1.0, eat_radius: 1.0, eat_rate: 0.05,
+          respawn: [5.0, 9.0]}
+  start: {}
+  episode: {duration: 240.0, dt: 0.02}
+  reward: {type: forage, approach_weight: 1.0, energy_weight: 0.2}
+
+stage1:                  # gait: match a real worm's net crawling speed (0.2 mm/s)
+  generations: 100
+  popsize: 24
+  sigma0: 0.5
+  objective: gait
+  target_speed: 0.2
+  duration: 60.0
+
+stage2:
+  generations: 150
+  popsize: 24
+  sigma0: 0.3
+  n_starts: 6
+
+evaluation:
+  n_starts: 32
+  validation_seed: 500
+  test_seed: 1000
+  arenas:
+    forage: {env: [configs/env.yaml]}
+    gaussian:
+      env: [configs/env.yaml]
+      overrides:
+        field: {type: gaussian, peak: [0.0, 0.0], sigma: 4.0, amplitude: 1.0}
+        start: {distance: [4.0, 8.0]}
+        episode: {duration: 90.0, dt: 0.02}
+        reward: {type: concentration_gain, final_fraction: 1.0, energy_weight: 0.05}

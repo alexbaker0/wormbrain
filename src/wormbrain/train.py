@@ -28,6 +28,7 @@ def cmaes(
     verbose: bool = True,
     checkpoint: str | Path | None = None,
     on_resume: Callable[[int], None] | None = None,
+    diagonal: bool = False,
 ) -> dict:
     """Maximise ``objective`` with CMA-ES.
 
@@ -36,8 +37,13 @@ def cmaes(
     restore its own per-generation state (e.g. which arenas to draw next).
     """
     es = cma.CMAEvolutionStrategy(
-        x0, sigma0, {"popsize": popsize, "seed": seed + 1, "verbose": -9}
-    )  # cma treats seed 0 as "random", so offset it
+        x0,
+        sigma0,
+        {"popsize": popsize, "seed": seed + 1, "verbose": -9}
+        | ({"CMA_diagonal": True} if diagonal else {}),
+    )  # cma treats seed 0 as "random", so offset it. ``diagonal``: separable CMA-ES
+    # (Ros & Hansen 2008), which adapts one step size per parameter and learns much
+    # faster than the full covariance when there are hundreds of parameters
     history, best_x, best_f = [], x0.copy(), -np.inf
     first = 0
     if checkpoint and Path(checkpoint).exists():

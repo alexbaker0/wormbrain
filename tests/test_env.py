@@ -176,3 +176,54 @@ def test_patch_world_periodic_wraps_smell_and_eating():
     flat = PatchField({"n_patches": 1, "half_size": 10.0, "eat_radius": 1.0})
     flat.xy = f.xy.copy()
     assert flat.conc(across)[0] < 1e-10
+
+
+def test_forage_world_eats_respawns_and_shares_food_sequences():
+    from wormbrain.env import ForageField
+
+    f = ForageField({"sigma": 4.0, "eat_radius": 1.0, "eat_rate": 0.5, "respawn": [5.0, 9.0]})
+    head0, heading = f.starts({}, 3, seed=7)
+    assert head0.shape == (3, 2) and np.allclose(head0, 0)
+    f.reset_worms(6)  # two candidates x three starts
+    assert np.allclose(f.xy[:3], f.xy[3:])  # the same worlds for both candidates
+    assert np.all((f.d0 >= 5.0) & (f.d0 <= 9.0))
+    first = f.xy.copy()
+    head = np.zeros((6, 2))
+    head[0] = first[0]  # worm 0 sits on its food; the others stay at the origin
+    assert f.conc(head)[0] == pytest.approx(1.0)
+    eaten = sum(f.consume(head, 0.1) for _ in range(25))  # 2.5 s at 0.5/s: one food and more
+    assert f.count[0] == 1 and f.count[1:].sum() == 0
+    assert eaten[0] == pytest.approx(1.0, abs=0.06) and eaten[1:].sum() == 0
+    assert not np.allclose(f.xy[0], first[0])  # a new food appeared ...
+    assert 5.0 <= np.linalg.norm(f.xy[0] - head[0]) <= 9.0  # ... 5-9 mm from the worm
+    assert f.closest[0] == 0.0 and np.all(f.closest[1:] == 0.0)
+    head[1] = 0.5 * first[1]  # worm 1 goes halfway
+    f.consume(head, 0.1)
+    assert f.closest[1] == pytest.approx(0.5)
+    head[1] = 0.0
+    f.consume(head, 0.1)
+    assert f.closest[1] == pytest.approx(0.5)  # best approach is kept
+
+
+def test_forage_reward_has_no_freeze_trap():
+    from wormbrain.env import ForageField, reward
+
+    f = ForageField({"sigma": 4.0, "eat_rate": 0.05})
+    head, heading = start_positions({}, f, 8, seed=3)
+    cfg = {"type": "forage", "approach_weight": 1.0, "energy_weight": 0.2}
+
+    class Frozen:
+        def reset(self, n):
+            self.n = n
+
+        def step(self, obs, dt):
+            return np.full((self.n, 4, 24), 0.5)
+
+    scores = {}
+    for name, c in [("frozen", Frozen()), ("blind", TravelingWave())]:
+        ep = run_episode(c, f, head, heading, duration=120.0, dt=0.02)
+        scores[name] = reward(ep, f, cfg).mean()
+    # a frozen worm scores exactly 0 and blind crawling beats it, so stopping dead is
+    # never the easy way out before steering has been learned
+    assert scores["frozen"] == pytest.approx(0.0, abs=1e-9)
+    assert scores["blind"] > 0.05

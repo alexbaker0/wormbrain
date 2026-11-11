@@ -131,6 +131,11 @@ class PatchField:
         amp = self.left / self.capacity if pos.ndim == 2 and len(pos) == len(self.left) else 1.0
         return (amp * np.exp(-d2 / (2 * self.sigma**2))).sum(-1)
 
+    def contact(self, head: np.ndarray) -> np.ndarray:
+        """1 where the head is on a patch that still has food, else 0 (per worm)."""
+        near = (self._wrap(head[:, None, :] - self.xy) ** 2).sum(-1) < self.eat_radius**2
+        return (near & (self.left > 1e-12)).any(1).astype(float)
+
     def consume(self, head: np.ndarray, dt: float) -> np.ndarray:
         """Worms at a patch eat from it; returns the amount each worm ate this step."""
         near = (self._wrap(head[:, None, :] - self.xy) ** 2).sum(-1) < self.eat_radius**2
@@ -150,8 +155,86 @@ class PatchField:
         return np.array(head), rng.uniform(0, 2 * np.pi, n)
 
 
+class ForageField:
+    """Serial foraging: each worm has one food source at a time; when it is eaten up a new
+    one appears ``respawn`` mm away in a random direction.
+
+    The food is a Gaussian odour source (width ``sigma`` mm) whose smell fades with what
+    is left. A worm whose head is within ``eat_radius`` mm eats ``eat_rate`` units per
+    second; a source holds ``capacity``. Every worm has its own food, and worms that share
+    a start index get the same sequence of food offsets, so candidates in one generation
+    face identical worlds (common random numbers). ``closest`` tracks, for the current
+    food, the best approach so far as a fraction of the distance at which it appeared.
+    """
+
+    kind = "forage"
+
+    def __init__(self, cfg: dict):
+        self.cfg = dict(cfg)
+        self.sigma = cfg.get("sigma", 4.0)
+        self.capacity = cfg.get("capacity", 1.0)
+        self.eat_radius = cfg.get("eat_radius", 1.0)
+        self.eat_rate = cfg.get("eat_rate", 0.05)
+        self.respawn = tuple(cfg.get("respawn", (5.0, 9.0)))
+        self.max_foods = cfg.get("max_foods", 64)
+        self.amp = np.array([1.0])
+        self.starts({}, 1, cfg.get("seed", 0))
+        self.reset_worms(1)
+
+    @property
+    def center(self) -> np.ndarray:
+        return np.zeros(2)
+
+    def starts(self, cfg: dict, n: int, seed: int):
+        """``n`` starts at the origin with random headings, and each start's food sequence."""
+        rng = np.random.default_rng(seed)
+        heading = rng.uniform(0, 2 * np.pi, n)
+        r = rng.uniform(*self.respawn, (n, self.max_foods))
+        a = rng.uniform(0, 2 * np.pi, (n, self.max_foods))
+        self.offsets = r[..., None] * np.stack([np.cos(a), np.sin(a)], axis=-1)
+        return np.zeros((n, 2)), heading
+
+    def reset_worms(self, n: int) -> None:
+        self.start_of = np.arange(n) % len(self.offsets)  # worm -> start index
+        self.count = np.zeros(n, dtype=int)  # foods finished
+        self.xy = self.offsets[self.start_of, 0].copy()  # the first food, from the origin
+        self.d0 = np.linalg.norm(self.xy, axis=1)
+        self.left = np.full(n, self.capacity)
+        self.closest = np.zeros(n)
+
+    def conc(self, pos) -> np.ndarray:
+        d2 = ((np.asarray(pos, dtype=float) - self.xy) ** 2).sum(-1)
+        return self.left / self.capacity * np.exp(-d2 / (2 * self.sigma**2))
+
+    def contact(self, head: np.ndarray) -> np.ndarray:
+        """1 where the head is on the food, else 0 (per worm)."""
+        return (np.linalg.norm(head - self.xy, axis=1) < self.eat_radius).astype(float)
+
+    def consume(self, head: np.ndarray, dt: float) -> np.ndarray:
+        d = np.linalg.norm(head - self.xy, axis=1)
+        self.closest = np.maximum(self.closest, 1.0 - d / self.d0)
+        bite = np.minimum(self.left, self.eat_rate * dt) * (d < self.eat_radius)
+        self.left -= bite
+        done = np.flatnonzero(self.left <= 1e-12)
+        if len(done):  # a new food appears, placed relative to where the worm is now
+            self.count[done] += 1
+            nxt = self.offsets[self.start_of[done], self.count[done] % self.max_foods]
+            self.xy[done] = head[done] + nxt
+            self.d0[done] = np.linalg.norm(nxt, axis=1)
+            self.left[done] = self.capacity
+            self.closest[done] = 0.0
+        return bite
+
+
 def make_field(cfg: dict):
-    return PatchField(cfg) if cfg.get("type") == "patches" else Field(cfg)
+    kind = cfg.get("type")
+    return (
+        PatchField(cfg)
+        if kind == "patches"
+        else ForageField(cfg)
+        if kind == "forage"
+        else Field(cfg)
+    )
 
 
 def start_positions(cfg: dict, field: Field, n: int, seed: int):
@@ -161,6 +244,8 @@ def start_positions(cfg: dict, field: Field, n: int, seed: int):
     """
     if getattr(field, "kind", None) == "patches":
         field.relayout(seed)
+        return field.starts(cfg, n, seed)
+    if getattr(field, "kind", None) == "forage":
         return field.starts(cfg, n, seed)
     rng = np.random.default_rng(seed)
     center = np.asarray(cfg.get("center", field.center), dtype=float)
@@ -200,7 +285,7 @@ def run_episode(
     (food patches run out); the field is restored afterwards."""
     body = body or Body()
     events = sorted(food_events or [], key=lambda e: e[0])
-    initial_peak = field.center if field.kind not in ("linear", "patches") else None
+    initial_peak = field.center if field.kind not in ("linear", "patches", "forage") else None
     if hasattr(field, "reset_worms"):
         field.reset_worms(len(np.atleast_1d(heading)))
     eaten = np.zeros(len(np.atleast_1d(heading)))
@@ -227,6 +312,8 @@ def run_episode(
         while events and (k - 1) * dt >= events[0][0]:
             field.move_peak(events.pop(0)[1])
         obs = {"t": (k - 1) * dt, "conc": field.conc(state.head), "kappa": state.kappa}
+        if hasattr(field, "contact"):  # touching food (patch and foraging worlds)
+            obs["food"] = field.contact(state.head)
         power_acc += body.step(state, controller.step(obs, dt), dt)
         if hasattr(field, "consume"):
             eaten += field.consume(state.head, dt)
@@ -278,6 +365,11 @@ def reward(ep: Episode, field: Field, cfg: dict | None = None) -> np.ndarray:
     elif kind == "eaten":
         # patch world: food eaten (units; one patch holds ``capacity``)
         r = ep.eaten[-1].copy()
+    elif kind == "forage":
+        # serial foraging: food eaten, plus ``approach_weight`` x how close the worm got to
+        # the food it has not finished (0 = no closer than where the food appeared, 1 = on
+        # it). The second term gives credit for partial progress; it is at most one food.
+        r = ep.eaten[-1] + cfg.get("approach_weight", 1.0) * field.closest
     else:
         raise ValueError(f"unknown reward type {kind!r}")
     r = r - cfg.get("energy_weight", 0.0) * ep.power[1:].mean(0)

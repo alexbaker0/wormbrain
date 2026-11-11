@@ -230,3 +230,22 @@ def test_head_proprioception_senses_head_bending_with_own_gain():
     inp = ctl.sensory_input({"t": 0.0, "conc": np.zeros(1), "kappa": kappa}, 0.02)
     d, v = conn.index(["SMDDL"])[0], conn.index(["SMDVL"])[0]
     assert inp[0, d] > 0 > inp[0, v]  # dorsal and ventral sides see opposite signs
+
+
+def test_food_contact_drives_dopamine_neurons_with_its_own_gain():
+    from wormbrain.connectome import build_connectome, load_config
+
+    conn = build_connectome(load_config("configs/connectome.yaml"))
+    plain, food = Brain(conn, BrainConfig()), Brain(conn, BrainConfig(food_sense=True))
+    assert food.spec.size == plain.spec.size + 1
+    assert {conn.cell_class[i] for i in food.food_idx} == {"CEP", "ADE", "PDE"}
+    x = np.zeros(food.spec.size)
+    x[food.spec.slices["food_gain"]] = 1.0
+    ctl = BrainController(food, np.repeat(x[None], 2, 0))
+    ctl.reset(2)
+    obs = {"t": 0.0, "conc": np.zeros(2), "kappa": np.zeros((2, food.joints_to_prop.shape[1])),
+           "food": np.array([1.0, 0.0])}  # fmt: skip
+    inp = ctl.sensory_input(obs, 0.02)
+    assert np.all(inp[0, food.food_idx] > 0) and np.all(inp[1] == 0)  # only the worm on food
+    obs.pop("food")  # worlds without food (a salt gradient) give no signal
+    assert np.all(ctl.sensory_input(obs, 0.02) == 0)
