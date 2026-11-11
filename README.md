@@ -409,6 +409,23 @@ real-wiring runs. Exploratory results:
   straight runs between patches.
 - **Next:** this lead needs a larger, pre-registered test.
 
+## Objective review: food minus energy
+
+Full write-up: [`OBJECTIVES.md`](OBJECTIVES.md). Earlier objectives had three weaknesses:
+a crawl stage with no realistic target, a gradient stage that paid for staying near food
+while forbidding stopping (hence circling), and no sense of being on food. The redesign is
+a gait stage that matches a real worm's speed (0.2 mm/s), then a serial foraging world
+scored by food eaten minus energy, with a food-contact sense on the dopamine neurons.
+Behaviour is judged by a scorecard that is never trained on.
+
+- **Gait:** all four brains matched the speed target; undulation 0.28–0.44 Hz.
+- **Foraging:** two of four brains learned to forage. The best (inhibitory, seed 1) runs
+  straight on empty ground (1°/mm), reaches food 100% of the time, curves towards food
+  from both sides, and eats 4.21 patches in a patch world it never trained in.
+- **Not achieved:** no brain slows on food, and cutting the food-contact sense changes
+  nothing. Circling inside the food radius eats as fast as stopping, so the objective
+  gives no reason to stop. Two brains did not learn to steer at all.
+
 ## Limitations (so far)
 
 - Synapse signs are inferred from transmitter identity; glutamate's sign is a
