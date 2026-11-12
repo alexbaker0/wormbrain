@@ -208,6 +208,13 @@ stopped, since cutting the sense in trained brains answers the same question, an
 patch-world run was paused for this round and resumed after it. Phase B took the best 4,
 not 6, because only 3 brains foraged.
 
+**Patch-world run of the first round** (`configs/forage_patch.yaml`, the four first-round
+brains continued in the patch world, `reports/forage_patch`): it helped only the brain
+that already foraged. Inhibitory seed 1 went from 4.21 to 5.06 patches and still reaches
+the Gaussian test food 100% of the time. Excitatory seed 0 rose from 0.69 to 2.05 patches
+but reaches the test food only 44% of the time. The two brains that never learned to
+steer stayed at 0.69 and 0.75 patches, about the blind crawler's level.
+
 ### What this says about the objectives
 
 - "Food eaten − energy" is enough for steering, straight runs and generalisation to a
