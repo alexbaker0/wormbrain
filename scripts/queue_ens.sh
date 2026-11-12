@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Ensemble round (OBJECTIVES.md): 16 brains through gait -> foraging on cone-shaped smell
-# (phase A), then the best 6 by validation score continue in a world where stopping on
+# (phase A), then the best 4 by validation score continue in a world where stopping on
 # food can pay (phase B). Scorecards and the food-sense check after each phase. Afterwards
 # the paused patch-world run of the first round is resumed (scripts/queue_forage.sh).
 # Checkpointed: rerunning continues where it stopped.

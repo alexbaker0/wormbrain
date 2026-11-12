@@ -426,6 +426,17 @@ Behaviour is judged by a scorecard that is never trained on.
   nothing. Circling inside the food radius eats as fast as stopping, so the objective
   gives no reason to stop. Two brains did not learn to steer at all.
 
+**Ensemble round** (16 brains, following the Izquierdo papers' training practices, then
+the best 4 continued with smaller food and a real energy price):
+
+- **3 of 16 brains forage.** The seed lottery is not reduced; keeping the best of many
+  seeds is necessary.
+- **Best brain so far** (inhibitory, seed 6): 0.20 mm/s, 0.40 Hz, 5°/mm turning on empty
+  ground, reaches food 100% of the time, 4.73 patches in the untrained patch world.
+  Wavelength 0.96 body lengths is still above a real worm's 0.65.
+- **Slowing on food is small.** Foragers move 12–20% slower on food. One brain does it
+  with its food-contact sense (cut the sense and it eats a third less); none stops.
+
 ## Limitations (so far)
 
 - Synapse signs are inferred from transmitter identity; glutamate's sign is a

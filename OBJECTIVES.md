@@ -150,7 +150,75 @@ built, not evidence about the wiring. Options that keep the "food − energy" pr
    steepness in training with Gaussian kept for testing.
 4. **Filter on wavelength afterwards**, as Olivares et al. do, and use 0.22 mm/s.
 
-## 6. Limits
+## 6. Ensemble round: what the literature's practices bought
+
+Options 1–4 were run as one round (`scripts/queue_ens.sh`). Phase A
+(`configs/forage_ens.yaml`): 16 brains (8 seeds × 2 glutamate settings), gait target
+0.22 mm/s, cone-shaped smell of random height in training, 8 starts per fitness value,
+60 generations. Phase B (`configs/forage_refine.yaml`): the best 4 by validation score
+continue for 90 generations with a 0.5 mm eating radius and energy weight 1.0. Reports:
+`reports/forage_ens`, `reports/forage_refine`.
+
+**Seed lottery: not reduced.** 3 of 16 brains forage (inhibitory seeds 1 and 6,
+excitatory seed 1). The other 13 score 0.26–1.11 in the foraging world against 2.04–2.36
+for the three, and reach the Gaussian test food in at most 56% of trials. The Izquierdo
+papers report roughly a quarter to two thirds of runs succeeding with a far smaller
+network, so 3 of 16 is at the low end but the same kind of outcome. Keeping the best of
+many seeds is therefore necessary here, not optional.
+
+**The three foragers generalise.** All three reach the Gaussian test food 100% of the time
+(chemotaxis index 0.67–0.77) although they trained only on cones, and all curve towards
+food from the side (20–25°/mm).
+
+**Phase B produced the brain with the most worm-like gait so far** (inhibitory, seed 6).
+It steers as well as the first round's best and moves more like a worm, though it turns a
+little more on empty ground:
+
+| measure | real worm | inh s6 after phase B | first round's best (inh s1) |
+|---|---|---|---|
+| speed, mm/s | ≈0.2 | 0.20 | 0.15 |
+| frequency, Hz | 0.3–0.5 | 0.40 | 0.26 |
+| wavelength, body lengths | ≈0.65 | 0.96 | 1.72 |
+| turning on empty ground, °/mm | ≈0 | 5 | 1 |
+| chemotaxis index | high | 0.79 | 0.79 |
+| reached food | high | 100% | 100% |
+| one-way turning | low | 30% | 19% |
+| patches eaten (untrained world) | — | 4.73 | 4.21 |
+
+**Wavelength filter:** no forager passes Olivares et al.'s 0.4–0.9 band. The closest are
+0.96 and 1.01 body lengths. Nothing in the objective rewards wavelength, and the gait
+stage matches speed only.
+
+**Slowing on food: small, and only one brain uses the food sense.** After phase B the
+three foragers move 12–20% slower on food than off it (0.163 vs 0.184, 0.106 vs 0.133,
+0.190 vs 0.215 mm/s). For excitatory seed 1 this is the food-contact sense at work: with
+the sense cut it no longer slows (0.191 on food) and eats a third less (1.75 → 1.19
+foods). This was already true after phase A (1.65 → 1.21). For the two inhibitory brains
+cutting the sense changes nothing, so their slowing is a by-product of turning near the
+food. No brain stops on food. Excitatory seed 1 is also the brain that turns most on empty
+ground (145°/mm) and barely travels there, so it is not a good worm overall.
+
+**Cost of the higher energy price:** inhibitory seed 1 became slower everywhere (0.15
+mm/s, 0.22 Hz) without eating more.
+
+Housekeeping: a first attempt with a 20 mm cone was stopped after 4 brains (best training
+score 1.61, none foraging) because relative sensing sees only about 8%/mm on so wide a
+cone; the reach was set to 10 mm. The no-food-sense ablation of the first round was
+stopped, since cutting the sense in trained brains answers the same question, and the
+patch-world run was paused for this round and resumed after it. Phase B took the best 4,
+not 6, because only 3 brains foraged.
+
+### What this says about the objectives
+
+- "Food eaten − energy" is enough for steering, straight runs and generalisation to a
+  new smell shape and a patch world, with no behaviour-specific terms. That part works.
+- It is not enough for stopping on food. Smaller food and a real energy price gave a
+  modest slowing, not dwelling. Real worms slow on food through a dedicated dopamine
+  pathway whose strength our fitness barely touches: a 15% slowdown is worth little food.
+- The main obstacle is now search, not the objective: 13 of 16 runs never find steering.
+  They sit at 0.3–1.1 with a gait that crawls but does not respond to smell.
+
+## 7. Limits
 
 - Four brains, one wiring; nothing here compares real with rewired or random wiring.
 - Wavelength is unrealistic; only speed is matched.
