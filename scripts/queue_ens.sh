@@ -46,7 +46,7 @@ card() {  # config name
 }
 
 train forage_ens
-train forage_refine --top 6 --rank-by forage_ens
+train forage_refine --top 4 --rank-by forage_ens
 card forage_refine
 card forage_ens
 echo "$(date -u +%FT%TZ) ensemble done"
