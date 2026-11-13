@@ -242,3 +242,12 @@ def test_forage_cone_smell_is_linear_with_random_height():
     assert np.allclose(f.conc(f.xy + np.array([25.0, 0.0])), 0.0)
     g = ForageField({"type": "forage"})  # default stays Gaussian with unit peak
     assert np.allclose(g.conc(g.xy), 1.0)
+
+
+def test_forage_smell_without_fade_ignores_food_left():
+    f = make_field({"type": "forage", "shape": "cone", "reach": 10.0, "fade": False})
+    f.starts({}, 2, 0)
+    f.reset_worms(2)
+    before = f.conc(np.zeros((2, 2)))
+    f.left[:] = 0.25 * f.capacity
+    assert np.allclose(f.conc(np.zeros((2, 2))), before)

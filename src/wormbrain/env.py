@@ -163,6 +163,7 @@ class ForageField:
     is left. With ``shape: cone`` the smell instead falls linearly to zero at ``reach`` mm
     and each food's height is drawn log-uniformly from ``steepness`` (Izquierdo & Lockery
     2010 train on cones of random steepness, since a Gaussian ties steepness to distance).
+    With ``fade: false`` the smell keeps its full strength until the food is gone.
     A worm whose head is within ``eat_radius`` mm eats ``eat_rate`` units per
     second; a source holds ``capacity``. Every worm has its own food, and worms that share
     a start index get the same sequence of food offsets, so candidates in one generation
@@ -183,6 +184,7 @@ class ForageField:
         self.shape = cfg.get("shape", "gaussian")  # or "cone": linear fall-off to ``reach``
         self.reach = cfg.get("reach", 20.0)
         self.steepness = tuple(cfg.get("steepness", (1.0, 1.0)))  # cone height, log-uniform
+        self.fade = cfg.get("fade", True)  # smell scales with the food left
         self.amp = np.array([1.0])
         self.starts({}, 1, cfg.get("seed", 0))
         self.reset_worms(1)
@@ -217,7 +219,7 @@ class ForageField:
             smell = self.height * np.maximum(0.0, 1.0 - np.sqrt(d2) / self.reach)
         else:
             smell = np.exp(-d2 / (2 * self.sigma**2))
-        return self.left / self.capacity * smell
+        return self.left / self.capacity * smell if self.fade else smell
 
     def contact(self, head: np.ndarray) -> np.ndarray:
         """1 where the head is on the food, else 0 (per worm)."""

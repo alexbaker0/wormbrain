@@ -1,0 +1,51 @@
+# No-fade round, phase 1 (OBJECTIVES.md section 8): forage_screen.yaml with one change,
+# the smell keeps its full strength until the food is gone (fade: false). In the
+# lasting-food round the fading smell taught brains that "no smell" means "stay".
+
+condition: real
+glutamate: excitatory
+seed: 0
+bounded: true
+activation: tanh
+muscle_dv: true
+dv_tie: true
+head_proprio: true
+food_sense: true
+
+stage1_from: runs/chemotaxis/forage_ens
+
+env: [configs/env.yaml]
+env_overrides:
+  field: {type: forage, shape: cone, reach: 10.0, steepness: [0.3, 3.0], capacity: 4.0, fade: false,
+          eat_radius: 1.0, eat_rate: 0.05, respawn: [2.0, 5.0]}
+  start: {}
+  episode: {duration: 240.0, dt: 0.02}
+  reward: {type: forage, approach_weight: 1.0, energy_weight: 0.2}
+
+stage1:
+  generations: 100
+  popsize: 24
+  sigma0: 0.5
+  objective: gait
+  target_speed: 0.22
+  duration: 60.0
+
+stage2:
+  generations: 30
+  popsize: 24
+  sigma0: 0.3
+  n_starts: 8
+
+evaluation:
+  n_starts: 32
+  validation_seed: 500
+  test_seed: 1000
+  arenas:
+    forage: {env: [configs/env.yaml]}
+    gaussian:
+      env: [configs/env.yaml]
+      overrides:
+        field: {type: gaussian, peak: [0.0, 0.0], sigma: 4.0, amplitude: 1.0}
+        start: {distance: [4.0, 8.0]}
+        episode: {duration: 90.0, dt: 0.02}
+        reward: {type: concentration_gain, final_fraction: 1.0, energy_weight: 0.05}
