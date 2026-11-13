@@ -5,6 +5,7 @@ from wormbrain.controllers import GradientSteering, TravelingWave
 from wormbrain.env import (
     Field,
     load_env_config,
+    make_field,
     mean_curvature,
     mean_turning_rate,
     path_speed,
