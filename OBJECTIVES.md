@@ -225,7 +225,67 @@ steer stayed at 0.69 and 0.75 patches, about the blind crawler's level.
 - The main obstacle is now search, not the objective: 13 of 16 runs never find steering.
   They sit at 0.3–1.1 with a gait that crawls but does not respond to smell.
 
-## 7. Limits
+## 7. Lasting-food round: screening works, the world taught a new bad habit
+
+Run as `scripts/queue_last.sh`. Food lasts 80 s of eating instead of 20 s (capacity 4), so
+one food is worth 4 and scores are not comparable with section 6.
+
+| phase | config | brains | generations | world | score |
+|---|---|---|---|---|---|
+| 1 screen | `forage_screen` | 32 | 30 | food 2–5 mm away | food + approach credit − 0.2 × energy |
+| 2 far | `forage_far` | best 8 | 60 | food 5–9 mm away | same |
+| 3 one currency | `forage_last` | best 4 | 90 | 5–9 mm, eating radius 0.5 mm | food − 2.0 × energy only |
+
+**Why the pure score is not used from the start.** Checked before the round: in the
+phase 3 world a gait-only brain eats nothing and scores −0.7 to −3.5 for moving, against 0
+for lying still, so it would learn to freeze. A brain that already forages scores +2.4 to
++5.6. The approach credit is therefore kept as a search aid in phases 1–2.
+
+**Screening works.** After 30 generations 4 of 32 brains were clearly foraging (score
+4.8–5.4) and 4 more part-way (2.1–2.8); the other 24 were at 1.75 or below. After phase 2,
+5 of the 8 continued brains forage (3.4–7.0 foods' worth eaten, 97–100% reaching the
+Gaussian test food in the scorecard's 150 s for four of them), against 3 foragers from
+section 6 for about the same computer time. The best after phase 2, inhibitory seed 2,
+was only seventh at the screen, so continuing 8 and not 4 mattered.
+
+**Lasting food made the food sense useful, in two brains.** After phase 2:
+
+| brain | foods eaten | speed on / off food (mm/s) | foods with sense cut | speed on food, sense cut |
+|---|---|---|---|---|
+| inhibitory s2 | 7.04 | 0.163 / 0.236 | 4.08 | 0.223 |
+| excitatory s15 | 0.76 | 0.042 / 0.138 | 0.19 | 0.143 |
+
+Inhibitory seed 2 slows by 31% on food and eats 70% more because of its food-contact
+sense. Excitatory seed 15 slows by 70% but is a poor forager. The other six do not use the
+sense. This is the first clear case of food-triggered slowing from "food − energy" alone,
+and it came from making food last, not from the energy price.
+
+**The cost: the foragers now circle when there is no smell.** On an empty field the three
+best brains turn at 155–413°/mm and make no headway (section 6's best turned at 5°/mm),
+and they eat 0.8–1.2 patches in the untrained patch world against 4.7. The likely cause is
+in the world: the smell fades as a food is eaten, so "almost no smell" now mostly means
+"on a nearly finished food", where staying put is right. With 20 s foods that state was
+brief; with 80 s foods it is a large part of life. Two phase 2 brains escaped this
+(excitatory seeds 9 and 7: 14 and 6°/mm, 2.75 and 2.01 patches), and seed 7's wavelength
+(0.81) is the first inside the 0.4–0.9 band.
+
+**Phase 3, the pure score, did not help.** The three inhibitory brains kept foraging
+(3.7–4.0 eaten, 72–97% reaching the test food) but still circle on empty ground
+(268–367°/mm). Slowing on food stayed small (inhibitory s2: 0.187 vs 0.212 mm/s;
+s6 became slower everywhere, 0.095 vs 0.121). Excitatory seed 9 collapsed to 0.34 and
+stopped reaching the test food. A tenfold energy price buys little dwelling here.
+
+### Where this leaves the objectives
+
+- The most worm-like brain is still section 6's inhibitory seed 6 after phase B
+  (`reports/forage_refine`): straight on empty ground, 0.20 mm/s, 0.40 Hz, 100% reached.
+- Screening then continuing is the better search recipe and should be kept.
+- Food that lasts is what makes the contact sense pay. Its smell must not fade to nothing
+  while food remains, or "no smell" comes to mean "stay".
+- The energy price is not the lever for dwelling. Section 6 raised it fivefold and phase 3
+  tenfold, and neither produced stopping.
+
+## 8. Limits
 
 - Four brains, one wiring; nothing here compares real with rewired or random wiring.
 - Wavelength is unrealistic; only speed is matched.

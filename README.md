@@ -437,6 +437,19 @@ the best 4 continued with smaller food and a real energy price):
 - **Slowing on food is small.** Foragers move 12–20% slower on food. One brain does it
   with its food-contact sense (cut the sense and it eats a third less); none stops.
 
+**Lasting-food round** (food lasts 80 s; 32 brains screened for 30 generations, the best
+8 continued, the best 4 finished on food minus energy with no approach credit):
+
+- **Screening works:** 5 of the 8 continued brains forage, against 3 of 16 before, for
+  about the same computer time.
+- **Food-triggered slowing appeared:** one good forager slows by 31% on food and eats 70%
+  more because of its food-contact sense.
+- **New fault:** the best foragers circle when there is no smell, because the smell fades
+  as food is eaten and "no smell" came to mean "stay". The most worm-like brain is still
+  the ensemble round's.
+- **The pure food-minus-energy score** only works for brains that already forage (others
+  learn to freeze), and a tenfold energy price did not produce stopping on food.
+
 ## Limitations (so far)
 
 - Synapse signs are inferred from transmitter identity; glutamate's sign is a
