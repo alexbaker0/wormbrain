@@ -112,8 +112,10 @@ def main():
     p.add_argument("--top", type=int, default=0, help="only the best K runs of --rank-by")
     p.add_argument("--rank-by", default=None, help="config name whose finished runs are "
                    "ranked by validation reward (never the test set)")  # fmt: skip
+    p.add_argument("--only", nargs="*", default=None, help="run names to keep, e.g. "
+                   "real_glu-inhibitory_seed2 (for a paired rerun of chosen brains)")  # fmt: skip
     args = p.parse_args()
-    keep = None
+    keep = args.only
     if args.top:
         done = [d for d in (RUNS / args.rank_by).iterdir() if (d / "stage2.json").exists()]
         val = {

@@ -43,7 +43,13 @@ card() {  # config name
   echo "$(date -u +%FT%TZ) carded $1"
 }
 
-train forage_screen2
-train forage_far2 --top 8 --rank-by forage_screen2
+# The same 8 brains that the lasting-food round continued (reports/forage_far), so the two
+# rounds can be compared brain by brain. (A full 32-brain screen was started first; the
+# container kept being suspended, so the round was cut to these 8.)
+SAME="real_glu-inhibitory_seed1 real_glu-inhibitory_seed2 real_glu-inhibitory_seed6
+real_glu-inhibitory_seed15 real_glu-excitatory_seed7 real_glu-excitatory_seed9
+real_glu-excitatory_seed10 real_glu-excitatory_seed15"
+train forage_screen2 --only $SAME
+train forage_far2 --only $SAME
 card forage_far2
 echo "$(date -u +%FT%TZ) nofade done"
