@@ -450,6 +450,16 @@ the best 4 continued with smaller food and a real energy price):
 - **The pure food-minus-energy score** only works for brains that already forage (others
   learn to freeze), and a tenfold energy price did not produce stopping on food.
 
+**No-fade round** (the same 8 brains retrained with a smell that does not fade as food
+is eaten):
+
+- **Circling reduced, not removed:** the three hardest circlers turn 3–5 times less on
+  empty ground, but still far more than the best earlier brain.
+- **One brain stops on food:** 0.010 mm/s on food against 0.153 off it, and it eats 37%
+  less with its food-contact sense cut. Its gait is poor.
+- **No single brain** yet combines straight runs, steering and stopping; which brains
+  succeed varies more between runs than the world changes tried so far.
+
 ## Limitations (so far)
 
 - Synapse signs are inferred from transmitter identity; glutamate's sign is a

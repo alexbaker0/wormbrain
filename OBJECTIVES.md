@@ -285,7 +285,61 @@ stopped reaching the test food. A tenfold energy price buys little dwelling here
 - The energy price is not the lever for dwelling. Section 6 raised it fivefold and phase 3
   tenfold, and neither produced stopping.
 
-## 8. Limits
+## 8. No-fade round: circling reduced, not removed; one brain stops on food
+
+One change from section 7: the smell keeps its full strength until the food is gone
+(`fade: false`; `configs/forage_screen2.yaml`, `configs/forage_far2.yaml`,
+`scripts/queue_nofade.sh`). The same 8 brains as section 7's phase 2 were retrained from
+their gait stage through the screen (30 generations) and the far phase (60), so the two
+rounds compare brain by brain. A fresh 32-brain screen was started first and cut to these
+8 because the container kept being suspended; this round therefore says nothing about how
+many brains learn to forage. Reports: `reports/forage_screen2`, `reports/forage_far2`.
+
+| brain | turning on empty ground, °/mm (fade → no fade) | patches, untrained world | foods eaten in own world | reached test food |
+|---|---|---|---|---|
+| inhibitory s1 | 413 → 141 | 1.19 → 1.40 | 5.35 → 3.87 | 100% → 100% |
+| inhibitory s2 | 276 → 50 | 0.83 → 0.81 | 7.04 → 1.06 | 100% → 44% |
+| inhibitory s6 | 155 → 53 | 0.88 → 2.12 | 6.00 → 4.31 | 100% → 100% |
+| excitatory s9 | 14 → 3 | 2.75 → 4.99 | 4.57 → 5.08 | 100% → 100% |
+| excitatory s7 | 6 → 57 | 2.01 → 1.56 | 3.35 → 3.94 | 81% → 100% |
+| excitatory s15 | 27 → 53 | 1.16 → 0.94 | 0.76 → 3.77 | 28% → 78% |
+| inhibitory s15 | 22 → 15 | 1.81 → 0.53 | 3.79 → 0.13 | 97% → 9% |
+| excitatory s10 | 35 → 11 | 0.43 → 0.47 | 0.82 → 0.15 | 31% → 9% |
+
+**The fading smell was part of the circling, not all of it.** The three brains that
+circled hardest turn 3–5 times less without fading, but 50–141°/mm is still far from the
+5°/mm of section 6's best. Two other brains turn more than before. With one run per brain
+and brains that differ this much from run to run, this is weak support for the
+explanation in section 7, not a confirmation.
+
+**Foraging is no better overall.** Five of 8 forage in each round, but not the same five:
+inhibitory seeds 2 and 15 failed here and excitatory seed 15 succeeded. Section 7's best
+brain (inhibitory seed 2, which slowed on food) did not learn to forage this time, so
+its food-sense slowing was not reproduced.
+
+**One brain now stops on food.** Excitatory seed 15 moves at 0.010 mm/s on food against
+0.153 off it, and with the food-contact sense cut it no longer stops (0.174) and eats
+37% less (3.77 → 2.38). This is the first brain that dwells on food through its contact
+sense. Its gait is poor, though: 0.16 Hz, a wavelength of 17 body lengths (hardly a wave)
+and 0.04 mm/s on empty ground.
+
+**Best all-round brain of this round:** excitatory seed 9. Straight on empty ground
+(3°/mm), 0.17 mm/s, reaches the test food 100% of the time, 4.99 patches in the untrained
+world (the highest so far, against 4.73), wavelength 1.38. It does not slow on food and
+does most of its turning one way (86%).
+
+### Where this leaves the objectives
+
+- No single brain yet combines straight runs, steering and stopping on food. Each has now
+  appeared, from the same simple score, in different brains: section 6's inhibitory seed 6
+  and this round's excitatory seed 9 (runs and steering), excitatory seed 15 (stopping).
+- What varies between rounds is mostly which brains succeed. Run-to-run variation is
+  larger than the effect of the world changes tried in sections 7 and 8, so single paired
+  runs cannot rank those changes.
+- Lasting food with a non-fading smell is the more realistic world and did no harm; it is
+  a reasonable default from here.
+
+## 9. Limits
 
 - Four brains, one wiring; nothing here compares real with rewired or random wiring.
 - Wavelength is unrealistic; only speed is matched.
