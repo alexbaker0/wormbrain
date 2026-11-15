@@ -35,6 +35,13 @@ export class PatchField {
     });
     return c;
   }
+  contact(x, y) {  // 1 when the head is on a patch that still has food, else 0
+    for (let k = 0; k < this.xy.length; k++) {
+      const dx = this.wrap(x - this.xy[k][0]), dy = this.wrap(y - this.xy[k][1]);
+      if (dx ** 2 + dy ** 2 < this.eatRadius ** 2 && this.left[k] > 1e-12) return 1;
+    }
+    return 0;
+  }
   consume(x, y, dt) {  // the head eats from any patch within eatRadius; returns the amount eaten
     let eaten = 0;
     this.xy.forEach(([px, py], k) => {
@@ -70,13 +77,14 @@ export class Brain {
     this.out = new Float64Array(this.n);
     this.cAvg = null;
   }
-  sensoryInput(conc, kappa, dt) {
+  sensoryInput(conc, kappa, dt, food = 0) {
     const m = this.m, inp = new Float64Array(this.n);
     if (this.cAvg === null) this.cAvg = conc;
     const rel = (conc - this.cAvg) / (m.concRef + Math.abs(this.cAvg));
     this.cAvg = this.cAvg + ((conc - this.cAvg) * dt) / m.saltTau;
     for (const i of m.onIdx) inp[i] += m.saltOn * Math.max(rel, 0);
     for (const i of m.offIdx) inp[i] += m.saltOff * Math.max(-rel, 0);
+    if (m.foodGain) for (const i of m.foodIdx) inp[i] += m.foodGain * food;
     const kMax = m.body.kappaMax;
     m.propIdx.forEach((i, j) => {
       let s = 0;
@@ -86,11 +94,11 @@ export class Brain {
     });
     return inp;
   }
-  step(conc, kappa, dt) {
+  step(conc, kappa, dt, food = 0) {
     const m = this.m, n = this.n, v = this.v, a = this.a, out = this.out;
     for (let i = 0; i < n; i++) out[i] = this.act(m.gain[i] * v[i]) * this.alive[i];
     const chem = matvec(this.W, out, n), gap = matvec(this.M, v, n);
-    const inp = this.sensoryInput(conc, kappa, dt);
+    const inp = this.sensoryInput(conc, kappa, dt, food);
     const ra = m.adapt ? dt / m.adaptTau : 0;
     for (let i = 0; i < n; i++) {
       const drive = m.gChem * chem[i] + m.gGap * gap[i] + m.bias[i] + inp[i];
@@ -223,7 +231,8 @@ export class Worm {
   }
   step() {
     const b = this.body, conc = this.field.conc(b.head[0], b.head[1]);
-    const muscle = this.brain.step(conc, b.kappa, this.dt);
+    const food = this.field.contact ? this.field.contact(b.head[0], b.head[1]) : 0;
+    const muscle = this.brain.step(conc, b.kappa, this.dt, food);
     b.step(muscle, this.dt);
     if (this.field.consume) this.eaten += this.field.consume(b.head[0], b.head[1], this.dt);
     this.k += 1;

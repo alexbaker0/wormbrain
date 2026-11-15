@@ -182,13 +182,13 @@ function newBrain(keepBody) {
   const lesion = document.getElementById("lesion").checked ? ["ASEL", "ASER"] : [];
   const old = worm && worm.body;
   worm = new Worm(MODELS[modelIdx], field, { lesion, dt: DT });
-  if (keepBody && old) { worm.body = old; worm.brain.reset(); worm.k = 0; }
+  if (keepBody && old) { worm.body = old; worm.brain.reset(); worm.k = 0; worm.eaten = 0; }
   else { const [h, hd] = startPos(); worm.reset(h, hd); trail = []; }
   hist = []; order = orderFor(MODELS[modelIdx]); keyIdx = KEY.map((k) => MODELS[modelIdx].neurons.indexOf(k));
   const m = MODELS[modelIdx];
   document.getElementById("note").textContent = mode === "patch"
-    ? `${m.title}: ${m.blurb} Over 32 held-out starts in 12 minutes it ate ${m.testEaten.toFixed(2)} ` +
-      `patches (hand-coded steering 1.89, blind straight crawling 0.77).`
+    ? `${m.title}: ${m.blurb} Over ${m.testStarts} held-out starts in 12 minutes it ate ${m.testEaten.toFixed(2)} ` +
+      `patches (hand-coded steering ${m.baseSteer}, blind straight crawling ${m.baseBlind}).`
     : `${m.title}: best of 8 trained runs (${m.run}); over 32 held-out starts it scored ` +
       `${m.testReward.toFixed(2)} (hand-coded steering 0.08).`;
 }

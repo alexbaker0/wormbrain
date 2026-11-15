@@ -44,6 +44,30 @@ PATCH_RUNS = [  # (title, run file, blurb) for the food-patch world
         "symmetric body trained only in the patch world: crawls straight but cannot steer.",
     ),
 ]
+FORAGE_CARD = json.loads(Path("reports/forage_far3/scorecard.json").read_text())
+# (title, run file, scorecard row, blurb): the full no-fade round, OBJECTIVES.md section 9
+FORAGE_RUNS = [
+    (
+        "Straight runner",
+        "reports/forage_far3/runs/real_glu-excitatory_seed9.json",
+        "real exc s9",
+        "trained only on food eaten minus energy, in a world where food lasts. Runs straight "
+        "between patches and steers towards smell; it does not slow on food.",
+    ),
+    (
+        "Second straight runner",
+        "reports/forage_far3/runs/real_glu-inhibitory_seed6.json",
+        "real inh s6",
+        "same training, different seed and glutamate setting. Runs nearly straight and steers.",
+    ),
+    (
+        "Stops on food",
+        "reports/forage_far3/runs/real_glu-excitatory_seed15.json",
+        "real exc s15",
+        "same training. The only brain that stops on food, through its food-contact "
+        "sense (cut the sense and it eats about half as much), but it travels poorly.",
+    ),
+]
 TITLES = {"real": "Real connectome", "rewired": "Rewired", "random": "Random wiring"}
 OUT = Path("web/dist")
 
@@ -72,11 +96,20 @@ def main():
         m["circuitEdges"] = circuit_edges(build_brain(run).conn)  # this brain's own wiring
         models.append(m)
     patch_models = []
+    for title, path, row, blurb in FORAGE_RUNS:
+        run = json.loads(Path(path).read_text())
+        m = export_model(run, title, body)
+        m["circuitEdges"] = circuit_edges(build_brain(run).conn)
+        card = next(r for r in FORAGE_CARD if r["run"] == row)
+        m["blurb"], m["testEaten"] = blurb, card["patches"]
+        m["testStarts"], m["baseSteer"], m["baseBlind"] = 16, 1.56, 0.53  # scripts/scorecard.py
+        patch_models.append(m)
     for title, path, blurb in PATCH_RUNS:
         run = json.loads(Path(path).read_text())
         m = export_model(run, title, body)
         m["circuitEdges"] = circuit_edges(build_brain(run).conn)
         m["blurb"], m["testEaten"] = blurb, run["test"]["patches"]["brain"]["eaten_mean"]
+        m["testStarts"], m["baseSteer"], m["baseBlind"] = 32, 1.89, 0.77
         patch_models.append(m)
     world = PatchField({"half_size": 25.0, "n_patches": 24, "min_spacing": 6.0})
     world.relayout(9999)  # the held-out test layout used in the reports' figures

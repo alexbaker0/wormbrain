@@ -84,6 +84,9 @@ def export_model(run: dict, title: str, body_cfg: dict) -> dict:
         ).tolist(),  # fmt: skip
         "jointsToProp": np.concatenate([brain.joints_to_prop, brain.joints_to_head]).tolist(),
         "proprioGain": 1.0,
+        # food-contact sense (CEP/ADE/PDE neurons get 1 on food, 0 off it, times one gain)
+        "foodIdx": brain.food_idx.tolist(),
+        "foodGain": scalar("food_gain") if p["food_gain"] is not None else 0.0,
         "muscleGain": scalar("muscle_gain"),
         "muscleBias": scalar("muscle_bias"),
         "muscleDV": scalar("muscle_dv") if p["muscle_dv"] is not None else 0.0,
@@ -112,6 +115,8 @@ def reference_run(run: dict, body_cfg: dict, field_cfg: dict, head, heading, ste
     eaten = 0.0
     for k in range(1, steps + 1):
         obs = {"t": (k - 1) * dt, "conc": field.conc(state.head), "kappa": state.kappa}
+        if hasattr(field, "contact"):  # touching food, as in env.run_episode
+            obs["food"] = field.contact(state.head)
         body.step(state, ctrl.step(obs, dt), dt)
         if hasattr(field, "consume"):
             eaten += float(field.consume(state.head, dt)[0])

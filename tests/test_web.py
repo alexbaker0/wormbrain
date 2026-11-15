@@ -77,3 +77,29 @@ def test_python_and_javascript_agree_in_the_patch_world(tmp_path):
     err = json.loads(res.stdout)
     for key in ("head", "theta0", "kappa", "v", "eaten"):
         assert err[key] < 1e-9, err
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node is not installed")
+def test_python_and_javascript_agree_with_the_food_contact_sense(tmp_path):
+    """A brain that stops on food through its food-contact sense (the sense must reach it)."""
+    run = json.loads(Path("reports/forage_far3/runs/real_glu-excitatory_seed15.json").read_text())
+    cfg = load_run_config("configs/chemotaxis.yaml")
+    env = env_config(cfg["env"], cfg["env_overrides"])
+    field = {"type": "patches", "half_size": 5.0, "sigma": 1.5, "capacity": 1.0,
+             "eat_radius": 1.0, "eat_rate": 0.03, "periodic": True,
+             "xy": [[-4.6, 0.4], [1.0, 3.0], [2.5, -3.5]]}  # fmt: skip
+    head, heading, steps, dt = [-3.8, 0.2], 3.0, 2500, 0.02
+    out = reference_run(run, env["body"], field, head, heading, steps, dt)
+    ref = {"field": field, "lesion": [], "head0": head, "heading0": heading, "steps": steps,
+           "dt": dt, "out": out}  # fmt: skip
+    model = export_model(run, "forage", env["body"])
+    assert model["foodGain"] != 0.0 and model["foodIdx"]
+    assert ref["out"]["eaten"][-1] > 0  # the worm reaches food, so the sense is exercised
+    model_path, ref_path = tmp_path / "model.json", tmp_path / "ref.json"
+    model_path.write_text(json.dumps(model))
+    ref_path.write_text(json.dumps(ref))
+    res = subprocess.run(["node", "web/agree.mjs", str(model_path), str(ref_path)],
+                         capture_output=True, text=True, check=True)  # fmt: skip
+    err = json.loads(res.stdout)
+    for key in ("head", "theta0", "kappa", "v", "eaten"):
+        assert err[key] < 1e-9, err
