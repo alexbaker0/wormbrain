@@ -460,6 +460,17 @@ is eaten):
 - **No single brain** yet combines straight runs, steering and stopping; which brains
   succeed varies more between runs than the world changes tried so far.
 
+**Full no-fade round** (32 brains screened for 30 generations, the best 8 continued for 60,
+food that lasts and a smell that does not fade):
+
+- **Screening finds foragers cheaply:** 10 of 32 foraging or part-way after 30
+  generations; 7 of the 8 continued eat 3.4–5.0 foods in 240 s.
+- **Two brains run straight and steer** (excitatory seed 9 and inhibitory seed 6): 10 and
+  18°/mm on empty ground, reaching the test food 100% of the time. The other six circle.
+- **One brain stops on food** (excitatory seed 15, 0.005 mm/s on food against 0.186 off,
+  through its food-contact sense), as in the previous round, but it travels poorly.
+- **No brain combines all three behaviours.**
+
 ## Limitations (so far)
 
 - Synapse signs are inferred from transmitter identity; glutamate's sign is a

@@ -339,7 +339,55 @@ does most of its turning one way (86%).
 - Lasting food with a non-fading smell is the more realistic world and did no harm; it is
   a reasonable default from here.
 
-## 9. Limits
+## 9. Full no-fade round: 32 brains screened, the best 8 continued
+
+Same settings as section 8 (lasting food, smell that does not fade), now with the whole
+search: all 32 brains (16 seeds × 2 glutamate settings) screened for 30 generations with
+food 2–5 mm away (`forage_screen2`), then the best 8 by validation score continued for 60
+generations with food 5–9 mm away (`forage_far3`). Script: `scripts/queue_big.sh`.
+Reports: `reports/forage_screen2`, `reports/forage_far3`. The first 14 screening brains
+came from the earlier partial runs of the same config.
+
+**Screening.** 6 of 32 brains were clearly foraging after 30 generations (validation score
+3.05–5.43) and 4 more part-way (2.08–2.86); the other 22 scored 1.82 or less. The
+continued 8 were excitatory seeds 9, 15, 7 and 2 and inhibitory seeds 12, 1, 6 and 2;
+inhibitory seeds 9 and 10 (2.28 and 2.08) just missed the cut.
+
+**Continuation.** Seven of the 8 forage well (3.4–5.0 foods eaten in 240 s in their own
+world); inhibitory seed 2 does not (1.3).
+
+| brain | foods eaten | reached test food | turning on empty ground, °/mm | patches, untrained world | speed on / off food, mm/s |
+|---|---|---|---|---|---|
+| excitatory s9 | 4.96 | 100% | 10 | 3.92 | 0.155 / 0.166 |
+| inhibitory s6 | 4.04 | 100% | 18 | 2.75 | 0.217 / 0.225 |
+| inhibitory s12 | 4.52 | 100% | 47 | 1.75 | 0.320 / 0.336 |
+| excitatory s15 | 3.36 | 59% | 50 | 0.62 | 0.005 / 0.186 |
+| inhibitory s2 | 1.32 | 56% | 51 | 1.37 | 0.233 / 0.229 |
+| excitatory s2 | 3.90 | 97% | 60 | 2.05 | 0.158 / 0.160 |
+| excitatory s7 | 3.91 | 100% | 89 | 1.32 | 0.153 / 0.158 |
+| inhibitory s1 | 3.63 | 100% | 111 | 0.84 | 0.240 / 0.233 |
+
+**What the search found.**
+
+- **Two brains run straight and steer:** excitatory seed 9 (10°/mm, 3.92 patches, reaches
+  the test food 100% of the time, chemotaxis index 0.74, 43% one-way turning) and
+  inhibitory seed 6 (18°/mm, 2.75 patches). Excitatory seed 9 was also the best in section
+  8, so it is reproducible from its screened start. The other six circle when there is no
+  smell (47–111°/mm), so a screen of 32 gives about one straight-running brain per 16.
+- **One brain stops on food, again:** excitatory seed 15 moves at 0.005 mm/s on food and
+  0.186 off it, and with the food-contact sense cut it eats 55% less (3.36 → 1.51). This
+  repeats section 8's result (0.010 vs 0.153; 37% less) from the same screened start, so
+  it is a stable property of that brain, not a one-off. It is a poor traveller (59% reach
+  the test food, 0.03 mm/s net on empty ground) and no other brain slows.
+- **No brain does all three.** Straight running and steering (excitatory 9, inhibitory 6)
+  and stopping on food (excitatory 15) are in different brains. Both slowing brains of
+  section 7 and 8 stopped through their food-contact sense and travelled badly.
+- **No wavelength passes the 0.4–0.9 band:** the eight range from 1.04 to 3.37 body
+  lengths.
+- **Screening costs less than it finds:** 10 of 32 brains were foraging or part-way after
+  30 generations, and 7 of the 8 continued became good foragers.
+
+## 10. Limits
 
 - Four brains, one wiring; nothing here compares real with rewired or random wiring.
 - Wavelength is unrealistic; only speed is matched.
