@@ -103,7 +103,10 @@ def main():
         card = next(r for r in FORAGE_CARD if r["run"] == row)
         m["blurb"], m["testEaten"] = blurb, card["patches"]
         m["testStarts"], m["baseSteer"], m["baseBlind"] = 16, 1.56, 0.53  # scripts/scorecard.py
+        m["testReached"] = run["test"]["gaussian"]["brain"]["reached_1mm"]
         patch_models.append(m)
+    # the two straight runners also go first in the one-food-source world
+    models = [dict(m, gauss=True) for m in patch_models[:2]] + models
     for title, path, blurb in PATCH_RUNS:
         run = json.loads(Path(path).read_text())
         m = export_model(run, title, body)

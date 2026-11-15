@@ -189,6 +189,10 @@ function newBrain(keepBody) {
   document.getElementById("note").textContent = mode === "patch"
     ? `${m.title}: ${m.blurb} Over ${m.testStarts} held-out starts in 12 minutes it ate ${m.testEaten.toFixed(2)} ` +
       `patches (hand-coded steering ${m.baseSteer}, blind straight crawling ${m.baseBlind}).`
+    : m.gauss
+    ? `${m.title}: ${m.blurb.split(".")[0]}. It heads for the food more directly than the older brains ` +
+      `but still loops somewhat once it is there. Over 32 held-out starts (90 s) it ended within 1 mm of ` +
+      `the food in ${Math.round(100 * m.testReached)}% of runs.`
     : `${m.title}: best of 8 trained runs (${m.run}); over 32 held-out starts it scored ` +
       `${m.testReward.toFixed(2)} (hand-coded steering 0.08).`;
 }
